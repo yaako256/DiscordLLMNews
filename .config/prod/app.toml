@@ -1,25 +1,3 @@
 # .config/prod/app.toml
 # 本番用のconfigファイル
 # ここに定数設定などを書いていく
-
-# スクレイピング関連
-[scraper]
-# スクレイピング用pythonがあるフォルダパス
-dir_path = "./scraper/"
-# スクレイピング用pythonのファイル名
-file_name = "main.py"
-# pythonを実行するためのコマンド
-python_command = "python3"
-
-# 記録データ関連
-[data]
-# 記録用データを保存するフォルダパス
-dir_path = "./data/"
-
-# Discord関連の定数定義
-[discord]
-# webhookは.envで上書きする!
-# 通知用
-notify_webhook = ["WEBHOOK_URL1"]
-# ログ通知用
-logs_webhook = ["WEBHOOK_URL2"]
