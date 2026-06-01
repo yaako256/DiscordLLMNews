@@ -4,3 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# 同じworkspace内の別クレート
+kernel = { path = "../kernel" }
+shared = { path = "../shared" }
+config= { path = "../config" }
+notifier= { path = "../notifier" }
+infra= { path = "../infra" }
+logger= { path = "../logger" }
+news_fetch= { path = "../news_fetch" }
+llm= { path = "../llm" }
