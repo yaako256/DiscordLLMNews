@@ -21,6 +21,15 @@ RUN cargo build --release -p app
 # =========================
 # Runtime Stage
 # =========================
+FROM debian:bookworm-slim
+
+# 必要ライブラリ
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    tzdata \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # timezone
 ENV TZ=Asia/Tokyo
 
@@ -45,14 +54,10 @@ RUN ARCH=$(uname -m) && \
 # =========================
 # Rust binary
 # =========================
-#COPY --from=builder /app/target/release/yutai_watch /app/yutai_watch
-COPY --from=builder /app/target/release/app /app/yutai_watch
+COPY --from=builder /app/target/release/app /app/discord_llm_news
 
 # 周辺ディレクトリのコピー
 COPY .config /app/.config
-COPY scraper /app/scraper
-COPY data /app/data
-
 COPY .docker/prod/crontab /app/crontab
 COPY .docker/prod/entrypoint.sh /entrypoint.sh
 

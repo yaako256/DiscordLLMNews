@@ -21,8 +21,9 @@ PROD_SERVICE := discord_llm_news
 
 ## 開発用の引数付き実行(開発コンテナ内) (例: make run CMD=monitor)
 run: 
-	cargo run -p app -- $(CMD)
-
+#	cargo run -p app -- $(CMD)
+	cargo run -p app
+	
 ## 本番用のバイナリを単発・引数付き実行(本番コンテナ内) (例: make run-prod CMD=monitor)
 run-prod:
 	/app/discord_llm_news $(CMD)
