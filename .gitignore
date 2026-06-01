@@ -1,0 +1,30 @@
+# Environment Variables (Security) ---
+# 秘密鍵やAPIキーを含む可能性があるため絶対にコミットしない
+.env
+.env.*
+!.env*.example
+
+# 自分用のやつ除外
+generate_tree_ver2.py
+prompt_memo.md
+prompt_out_memo.md
+
+# 記録用フォルダ除外
+data/*
+
+# Rustのビルド成果物は巨大になるため必須
+target
+
+# --- Logs ---
+logs/
+*.log
+
+# --- IDE / Editor Specific ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+

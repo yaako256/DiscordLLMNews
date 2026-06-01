@@ -1,0 +1,4 @@
+# dockerignore
+# 起動時に重たくなるのを防げる
+target
+.git

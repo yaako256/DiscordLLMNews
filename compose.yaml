@@ -1,0 +1,51 @@
+# compose.yaml
+services:
+  # 開発用コンテナ
+  # Rustの開発ができる
+  yutai_watch_dev:
+    container_name: yutai_watch_dev
+    build:
+      context: .
+      dockerfile: .docker/dev/Dockerfile
+    volumes:
+      - .:/app
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/app/target
+      # 開発用configをvolume化(configを変更後のコンテナrebuildが必要なくなる)
+      - ./.config/dev:/app/.config
+    # 作業用ディレクトリの指定
+    working_dir: /app
+    # 仮想端末を割り当てる？
+    tty: true
+    command: bash -c "cargo watch -x check"
+
+  # 本番用コンテナ
+  # Rustバイナリだけ入れる。
+  # このコンテナを常駐させ、cronに定期実行させる。
+  yutai_watch:
+    container_name: yutai_watch
+    build:
+      context: .
+      dockerfile: .docker/prod/Dockerfile
+    restart: unless-stopped
+    volumes:
+      # 本番用configをvolume化(configを変更後のコンテナrebuildが必要なくなる)
+      - ./.config/prod:/app/.config
+    # 以下本番用制限設定関連
+    # リソース制限の設定（Compose V3仕様）
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0' # CPUを最大1コア分に制限（Playwright用にある程度確保）
+          memory: 1024M # メモリを最大1GBに制限（ブラウザが動くため少し余裕を持たせる）
+    # ログローテーションの設定（ディスク満杯防止）
+    # Dockerのログだけが対象(自前jsonlなどは対象外)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" # 1つのログファイルは最大10MB
+        max-file: "3" # 過去ログは最大3ファイルまで保持（計30MB）
+
+volumes:
+  cargo_cache:
+  target_cache:
