@@ -10,8 +10,8 @@
 CMD ?= help
 
 # サービス名（compose.yamlと一致させる）
-DEV_SERVICE  := yutai_watch_dev
-PROD_SERVICE := yutai_watch
+DEV_SERVICE  := discord_llm_news_dev
+PROD_SERVICE := discord_llm_news
 
 
 # ==================================
@@ -25,7 +25,7 @@ run:
 
 ## 本番用のバイナリを単発・引数付き実行(本番コンテナ内) (例: make run-prod CMD=monitor)
 run-prod:
-	/app/yutai_watch $(CMD)
+	/app/discord_llm_news $(CMD)
 
 
 # ==================================

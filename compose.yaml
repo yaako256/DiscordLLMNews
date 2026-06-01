@@ -2,8 +2,8 @@
 services:
   # 開発用コンテナ
   # Rustの開発ができる
-  yutai_watch_dev:
-    container_name: yutai_watch_dev
+  discord_llm_news_dev:
+    container_name: discord_llm_news_dev
     build:
       context: .
       dockerfile: .docker/dev/Dockerfile
@@ -22,8 +22,8 @@ services:
   # 本番用コンテナ
   # Rustバイナリだけ入れる。
   # このコンテナを常駐させ、cronに定期実行させる。
-  yutai_watch:
-    container_name: yutai_watch
+  discord_llm_news:
+    container_name: discord_llm_news
     build:
       context: .
       dockerfile: .docker/prod/Dockerfile
