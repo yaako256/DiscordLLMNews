@@ -4,3 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# 同じworkspace内の別クレート
+shared = { path = "../shared" }
+
+# workspace共通クレート
+serde = { workspace = true }
+
+# 固有クレート
+# configの定番クレート
+config = "0.14"
+# envファイル読込用
+dotenvy = "0.15"

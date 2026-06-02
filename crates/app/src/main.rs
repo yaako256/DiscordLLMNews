@@ -7,13 +7,9 @@ use shared::errors::{AppError, AppResult};
 
 fn main() -> AppResult<()> {
   println!("Hello, world!");
-  kernel::debug();
-  config::debug();
-  notifier::debug();
-  infra::debug();
-  logger::debug();
-  news_fetch::debug();
-  llm::debug();
 
+  let config = config::load_config()?;
+
+  println!("{:#?}", config);
   Ok(())
 }

@@ -3,9 +3,9 @@ crates/shared/src/constants/file.rs
 ファイルの定数設定
 */
 
-// データファイル名
-pub const NEWS_SUMMARY_FILE_NAME: &str = "news_summary.json";
-pub const NOTIFICATION_LOG_FILE_NAME: &str = "notification_log.jsonl";
+// データファイルパス
+pub const NEWS_SUMMARY_FILE_PATH: &str = "./data/news_summary.json";
+pub const NOTIFICATION_LOG_FILE_PATH: &str = "./data/notification_log.jsonl";
 
 // notification_log.jsonl関連
 // 保存項目の上限
