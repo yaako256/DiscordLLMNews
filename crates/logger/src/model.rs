@@ -4,7 +4,7 @@ crates/logger/src/model.rs
 */
 
 // JSONシリアライズ用
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json;
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
