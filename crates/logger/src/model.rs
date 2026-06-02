@@ -17,6 +17,12 @@ pub struct NotificationLogLogger {
   entries: Vec<NotificationLogEntry>,
 }
 impl NotificationLogLogger {
+  pub fn init() -> Self {
+    Self {
+      entries: Vec::new(),
+    }
+  }
+
   // impl Into<String>で渡すと String も str も両対応？
   // infoログ追加
   pub fn info(&mut self, stage: impl Into<String>, msg: impl Into<String>) {
