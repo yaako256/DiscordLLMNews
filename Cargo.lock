@@ -475,6 +475,12 @@ dependencies = [
 [[package]]
 name = "kernel"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "config 0.1.0",
+ "logger",
+ "shared",
+]
 
 [[package]]
 name = "leb128fmt"
