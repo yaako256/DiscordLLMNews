@@ -14,6 +14,7 @@ async fn main() -> AppResult<()> {
   //println!("{:#?}", config);
 
   // DataのI/Oのデバッグ
+  /*
   let started_at: chrono::DateTime<chrono::FixedOffset> = chrono::Utc::now().fixed_offset();
   // init処理
   infra::init_data_dir(started_at).await?;
@@ -35,6 +36,10 @@ async fn main() -> AppResult<()> {
     error_stage: None,
   })
   .await?;
+  */
+
+  let mut knl = kernel::Kernel::new(config);
+  knl.feed().await?;
 
   Ok(())
 }
