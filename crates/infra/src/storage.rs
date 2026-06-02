@@ -16,7 +16,10 @@ use uuid::Uuid;
 use chrono::{DateTime, FixedOffset};
 
 // workspace内クレート
-use shared::constants::file::{DATA_DIR_PATH, NEWS_SUMMARY_FILE_PATH, NOTIFICATION_LOG_FILE_PATH};
+use logger::NotificationLogLogger;
+use shared::constants::file::{
+  DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PROCESS_HISTORY_FILE_NAME,
+};
 use shared::{
   NewsSummary,
   errors::{AppError, AppResult},
@@ -49,7 +52,7 @@ async fn ensure_dir(dir: &Path) -> AppResult<()> {
 }
 
 // ---------------------------------------------------------------
-// dataフォルダのIO
+// news_summary.json
 // ---------------------------------------------------------------
 /// news_summary.json を atomic に書き込む
 /// 一時ファイルに書いてからリネームする（書き込み途中でプロセスが死んでも壊れない）
@@ -57,7 +60,7 @@ pub async fn write_news_summary(summary: &NewsSummary) -> AppResult<()> {
   // データフォルダのパスを作成
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // news_summary.jsonのパスを作成
-  let summary_path = data_dir.join(NEWS_SUMMARY_FILE_PATH);
+  let summary_path = data_dir.join(NEWS_SUMMARY_FILE_NAME);
 
   // jsonにシリアライズ
   let json = serde_json::to_string_pretty(summary)
@@ -72,7 +75,7 @@ pub async fn read_news_summary() -> AppResult<NewsSummary> {
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // news_summary.jsonのパスを作成
-  let summary_path = data_dir.join(NEWS_SUMMARY_FILE_PATH);
+  let summary_path = data_dir.join(NEWS_SUMMARY_FILE_NAME);
 
   // ファイル存在チェックを明示的に行い、専用メッセージで返す
   if !summary_path.exists() {
@@ -92,6 +95,48 @@ pub async fn read_news_summary() -> AppResult<NewsSummary> {
 }
 
 // ---------------------------------------------------------------
+// notification_log.jsonl
+// ---------------------------------------------------------------
+/// notification_log.json を atomic に書き込む
+/// 一時ファイルに書いてからリネームする（書き込み途中でプロセスが死んでも壊れない）
+pub async fn write_notification_log(logger: &NotificationLogLogger) -> AppResult<()> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // notification_log.jsonlのパスを作成
+  let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_NAME);
+
+  // jsonlシリアライズ
+  let json = logger.to_jsonl_string();
+
+  // 書き込み
+  atomic_write(&notification_path, json.as_bytes()).await
+}
+
+/// notification_log.jsonl を読み込む(send処理で使用)
+pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
+  // &strをパス型に変換
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // notification_log.jsonlのパスを作成
+  let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_NAME);
+
+  // ファイル存在チェックを明示的に行い、専用メッセージで返す
+  if !notification_path.exists() {
+    return Err(AppError::Storage(
+      "notification_log.jsonl が存在しない。feed が未実行の可能性があり".to_string(),
+    ));
+  }
+
+  // ファイル読み込み
+  let bytes = fs::read(notification_path)
+    .await
+    .map_err(|e| AppError::Storage(format!("notification_log 読み込み失敗: {e}")))?;
+
+  // jsonをデシリアライズ
+  serde_json::from_slice(&bytes)
+    .map_err(|e| AppError::JsonParse(format!("notification_log パース失敗: {e}")))
+}
+
+// ---------------------------------------------------------------
 // process_history.jsonl
 // ---------------------------------------------------------------
 /// process_history.jsonl に1行追記する
@@ -100,8 +145,8 @@ pub async fn append_process_history(entry: &ProcessHistory) -> AppResult<()> {
 
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
-  // news_summary.jsonのパスを作成
-  let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_PATH);
+  // process_history.jsonlのパスを作成
+  let process_history_path = data_dir.join(PROCESS_HISTORY_FILE_NAME);
 
   // jsonシリアライズ
   let mut line = serde_json::to_string(entry)
@@ -112,7 +157,7 @@ pub async fn append_process_history(entry: &ProcessHistory) -> AppResult<()> {
   let mut file = fs::OpenOptions::new()
     .create(true)
     .append(true)
-    .open(notification_path)
+    .open(process_history_path)
     .await
     .map_err(|e| AppError::Storage(format!("process_history オープン失敗: {e}")))?;
 

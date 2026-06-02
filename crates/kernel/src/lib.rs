@@ -34,6 +34,9 @@ impl Kernel {
     self.logger.warn("debug", "warnデバッグメッセージ");
     self.logger.error("debug", "errorデバッグメッセージ");
 
+    // 書き込み
+    infra::write_notification_log(&self.logger).await;
+
     println!("{}", self.logger.to_jsonl_string());
     // started_at を infra に渡す
     //storage::init_data_dir(self.started_at).await?;

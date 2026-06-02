@@ -4,7 +4,7 @@ crates/logger/src/model.rs
 */
 
 // JSONシリアライズ用
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
@@ -12,7 +12,7 @@ use chrono::{DateTime, FixedOffset, Utc};
 // ----------------
 // ロガー本体
 // ----------------
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NotificationLogLogger {
   entries: Vec<NotificationLogEntry>,
 }
@@ -87,6 +87,7 @@ impl NotificationLogLogger {
 // ----------------
 // ログレベル
 // ----------------
+#[derive(Debug, Deserialize, Serialize)]
 enum LogLevel {
   Info,
   Warn,
@@ -103,16 +104,17 @@ impl LogLevel {
   }
 }
 // serde が必要な場合（jsonl出力用）
+/*
 impl serde::Serialize for LogLevel {
   fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(self.as_str())
   }
 }
-
+*/
 // ----------------
 // エントリ
 // ----------------
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NotificationLogEntry {
   logged_at: DateTime<FixedOffset>,
   level: LogLevel,

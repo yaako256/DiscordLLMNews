@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 shared = { path = "../shared" }
 config = { path = "../config" }
+infra= { path = "../infra" }
 logger = { path = "../logger" }
 
 chrono = { workspace = true }

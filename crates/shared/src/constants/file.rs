@@ -6,8 +6,9 @@ crates/shared/src/constants/file.rs
 // データフォルダのパス
 pub const DATA_DIR_PATH: &str = "./data/";
 // データファイルパス
-pub const NEWS_SUMMARY_FILE_PATH: &str = "news_summary.json";
-pub const NOTIFICATION_LOG_FILE_PATH: &str = "notification_log.jsonl";
+pub const NEWS_SUMMARY_FILE_NAME: &str = "news_summary.json";
+pub const NOTIFICATION_LOG_FILE_NAME: &str = "notification_log.jsonl";
+pub const PROCESS_HISTORY_FILE_NAME: &str = "process_history.jsonl";
 
 // notification_log.jsonl関連
 // 保存項目の上限

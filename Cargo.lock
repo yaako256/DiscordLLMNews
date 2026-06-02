@@ -436,6 +436,7 @@ name = "infra"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "logger",
  "serde",
  "serde_json",
  "shared",
@@ -478,6 +479,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "config 0.1.0",
+ "infra",
  "logger",
  "shared",
 ]

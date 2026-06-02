@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # 同じworkspace内の別クレート
 shared = { path = "../shared" }
+logger = { path = "../logger" }
 
 # workspace共通クレート
 tokio = { workspace = true }
