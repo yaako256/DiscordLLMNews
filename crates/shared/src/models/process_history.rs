@@ -3,7 +3,7 @@ crates/shared/src/models/process_history.rs
 process_history.jsonで定義される型を定義する
 */
 // JSONシリアライズ用
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 // 時間型用
 use chrono::{DateTime, FixedOffset};
 

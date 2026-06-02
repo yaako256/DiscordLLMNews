@@ -1,3 +1,1 @@
-pub fn debug() {
-  println!("Hello, infra!")
-}
+mod storage;

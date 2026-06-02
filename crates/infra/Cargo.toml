@@ -4,3 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# 同じworkspace内の別クレート
+shared = { path = "../shared" }
+
+# workspace共通クレート
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+
+# 固有クレート
+# 一時ファイル名の一意なID生成用
+uuid = { version = "1.0", features = ["v4"] }
