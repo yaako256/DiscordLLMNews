@@ -52,7 +52,7 @@ pub struct RSSItem {
 #[derive(Debug, Deserialize)]
 pub struct LLMConfig {
   // APIキー
-  pub gemini_api_key: String,
+  pub gemini_api_key: Vec<String>,
   // モデルの定義
   pub fallback_models: Vec<String>,
 
