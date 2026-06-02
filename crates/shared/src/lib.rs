@@ -13,5 +13,6 @@ pub use models::{
     SummaryResponse,
   },
   news_item::NewsItem,
+  process_history::ProcessHistory,
   state::NewsSummary,
 };
