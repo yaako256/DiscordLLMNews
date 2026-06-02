@@ -8,7 +8,6 @@ use shared::errors::{AppError, AppResult};
 fn main() -> AppResult<()> {
   println!("Hello, world!");
   kernel::debug();
-  shared::debug();
   config::debug();
   notifier::debug();
   infra::debug();
