@@ -43,7 +43,6 @@ impl Kernel {
 # 開発日記
 ## 2026年06月02日(朝)
 プロジェクト始動！
-### やったこと
 - Docker関連の整備
 - workspaceの整備
 - 設計書の作成
@@ -55,3 +54,8 @@ impl Kernel {
 - エラー型の作成
 - 共通型の作成
 - configクレートと、config設定の作成
+
+## 2026年06年03日
+- ProcessHistoryの型を作成
+- infraのI/Oを作成
+- 
