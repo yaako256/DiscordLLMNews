@@ -13,3 +13,7 @@ infra= { path = "../infra" }
 logger= { path = "../logger" }
 news_fetch= { path = "../news_fetch" }
 llm= { path = "../llm" }
+
+
+chrono = { workspace = true }
+tokio = { workspace = true }
