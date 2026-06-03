@@ -1,3 +1,1 @@
-pub fn debug() {
-  println!("Hello, news_fetch!")
-}
+mod livedoor_news;
