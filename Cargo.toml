@@ -18,6 +18,8 @@ serde_json = "1"
 
 # 非同期処理
 tokio = { version = "1", features = ["full"] }
+# 非同期トレイト用
+async-trait = "0.1"
 
 # 時間型用
 chrono = { version = "0.4", features = ["serde"] }

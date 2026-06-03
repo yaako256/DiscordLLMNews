@@ -12,6 +12,7 @@ pub use models::{
     NewsItemLite, SelectByBodyRequest, SelectByTitleRequest, SelectResponse, SummarizeRequest,
     SummaryResponse,
   },
+  news_fetch::{NewsFetcher, RSSItem},
   news_item::NewsItem,
   process_history::ProcessHistory,
   state::NewsSummary,
