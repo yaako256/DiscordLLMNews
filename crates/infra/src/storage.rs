@@ -19,6 +19,7 @@ use chrono::{DateTime, FixedOffset};
 use logger::NotificationLogLogger;
 use shared::constants::file::{
   DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PROCESS_HISTORY_FILE_NAME,
+  TRIVIA_HISTORY_FILE_NAME,
 };
 use shared::{
   NewsSummary,
@@ -134,6 +135,73 @@ pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
   // jsonをデシリアライズ
   serde_json::from_slice(&bytes)
     .map_err(|e| AppError::JsonParse(format!("notification_log パース失敗: {e}")))
+}
+
+// ---------------------------------------------------------------
+// trivia_history.jsonl
+// ---------------------------------------------------------------
+/// trivia_history.jsonl を読み込む(send処理で使用)
+pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>> {
+  // &strをパス型に変換
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // trivia_history.jsonlのパスを作成
+  let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
+
+  // ファイル存在チェックを明示的に行い、専用メッセージで返す
+  if !notification_path.exists() {
+    return Err(AppError::Storage(
+      "trivia_history.jsonl が存在しない。feed が未実行の可能性があり".to_string(),
+    ));
+  }
+
+  // ファイル読み込み
+  let bytes = fs::read(trivia_history_path)
+    .await
+    .map_err(|e| AppError::Storage(format!("trivia_history 読み込み失敗: {e}")))?;
+
+  // jsonをデシリアライズ
+  let mut histories: Vec<TriviaHistory> = serde_json::from_slice(&bytes)
+    .map_err(|e| AppError::JsonParse(format!("trivia_history パース失敗: {e}")))?;
+
+  // 最新n件に絞り込む
+  let latest_histories: Vec<TriviaHistory> = histories
+    .into_iter() //所有権ごともらう
+    .rev() // 後ろが新しいため、これで新しい順にする
+    .take(n) // n件だけ取得
+    .collect(); // ベクターに変換
+
+  Ok(latest_histories)
+}
+
+/// trivia_history.jsonl に1行追記する
+pub async fn append_trivia_history(entry: &TriviaHistory) -> AppResult<()> {
+  use tokio::io::AsyncWriteExt as _;
+
+  // &strをパス型に変換
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // trivia_history.jsonlのパスを作成
+  let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
+
+  // jsonシリアライズ
+  let mut line = serde_json::to_string(entry)
+    .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
+  line.push('\n');
+
+  // ファイル読み込み
+  let mut file = fs::OpenOptions::new()
+    .create(true)
+    .append(true)
+    .open(trivia_history_path)
+    .await
+    .map_err(|e| AppError::Storage(format!("trivia_history オープン失敗: {e}")))?;
+
+  // ファイル書き込み
+  file
+    .write_all(line.as_bytes())
+    .await
+    .map_err(|e| AppError::Storage(format!("trivia_history 書き込み失敗: {e}")))?;
+
+  Ok(())
 }
 
 // ---------------------------------------------------------------
