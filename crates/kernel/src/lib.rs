@@ -176,7 +176,7 @@ impl Kernel {
     let finish_at = chrono::Utc::now().fixed_offset();
 
     // news_summaryに書き込む
-    infra::write_news_summary(&&shared::NewsSummary::Failed {
+    infra::write_news_summary(&shared::NewsSummary::Failed {
       started_at: self.started_at,
       finished_at: finish_at,
       error_summary: error_summary.clone(),
