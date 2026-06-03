@@ -23,3 +23,6 @@ async-trait = "0.1"
 
 # 時間型用
 chrono = { version = "0.4", features = ["serde"] }
+
+# HTTPリクエスト用
+reqwest = { version = "0.12", features = ["json"]}

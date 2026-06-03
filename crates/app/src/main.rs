@@ -40,6 +40,9 @@ async fn main() -> AppResult<()> {
   // configのロード
   let config = config::load_config()?;
 
+  // HTTP Clientの起動(グローバルで宣言してそれを使いまわす)
+  http_client::init(config.rss.timeout_s as u64, config.llm.timeout_s as u64);
+
   //println!("{:#?}", config);
 
   // DataのI/Oのデバッグ

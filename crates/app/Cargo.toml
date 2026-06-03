@@ -12,8 +12,8 @@ notifier= { path = "../notifier" }
 infra= { path = "../infra" }
 logger= { path = "../logger" }
 news_fetch= { path = "../news_fetch" }
-llm= { path = "../llm" }
-
+llm = { path = "../llm" }
+http_client = { path = "../http_client" }
 
 tracing-subscriber = { workspace = true }
 chrono = { workspace = true }
