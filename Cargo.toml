@@ -26,3 +26,20 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # HTTPリクエスト用
 reqwest = { version = "0.12", features = ["json"]}
+
+
+
+
+
+
+
+# リリースビルド用の処理設定
+[profile.release]
+# 最大限の最適化
+opt-level = 3
+# リンク時最適化（バイナリサイズ削減と高速化）
+lto = true
+# コンパイル時間は増えるが、実行速度が向上する
+codegen-units = 1
+# シンボル情報を削除してバイナリを軽量化
+strip = true

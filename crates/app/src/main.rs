@@ -2,6 +2,8 @@
 crates/app/src/main.rs
 コマンド引数を受け取り、kernelに処理を委譲する
 */
+use std::sync::Arc;
+
 // エラー型用
 use shared::errors::{AppError, AppResult};
 
@@ -38,7 +40,7 @@ async fn main() -> AppResult<()> {
   }
 
   // configのロード
-  let config = config::load_config()?;
+  let config = Arc::new(config::load_config()?);
 
   // HTTP Clientの起動(グローバルで宣言してそれを使いまわす)
   http_client::init(config.rss.timeout_s as u64, config.llm.timeout_s as u64);
@@ -70,7 +72,7 @@ async fn main() -> AppResult<()> {
   .await?;
   */
 
-  let mut knl = kernel::Kernel::new(config);
+  let mut knl = kernel::Kernel::new(Arc::clone(&config));
   knl.feed().await?;
 
   Ok(())

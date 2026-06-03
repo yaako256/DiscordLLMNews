@@ -1,6 +1,7 @@
 /*
 crates/kernel/src/lib.rs
 */
+use std::sync::Arc;
 
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
@@ -12,14 +13,17 @@ use logger;
 use shared::errors::AppResult;
 // config
 use config::AppConfig;
+// news_fetch
+use news_fetch::LivedoorNewsFetcher;
+use shared::NewsFetcher;
 
 pub struct Kernel {
-  config: AppConfig,
+  config: Arc<AppConfig>,
   started_at: DateTime<FixedOffset>,
 }
 
 impl Kernel {
-  pub fn new(config: AppConfig) -> Self {
+  pub fn new(config: Arc<AppConfig>) -> Self {
     Self {
       config,
       started_at: Utc::now().fixed_offset(), // インスタンス化時点の時刻
@@ -42,6 +46,13 @@ impl Kernel {
     for e in logger::to_chunks(5000) {
       info!("{}", e);
     }
+
+    // NewsFetcherのインスタンス
+    let mut news_fetcher = LivedoorNewsFetcher::new(Arc::clone(&self.config));
+    // RSSの取得
+    news_fetcher.rss_feed().await?;
+
+    info!("{:#?}", news_fetcher);
 
     // started_at を infra に渡す
     //storage::init_data_dir(self.started_at).await?;

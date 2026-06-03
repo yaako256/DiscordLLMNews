@@ -22,9 +22,6 @@ pub struct RSSItem {
 // NewsFetcherのトレイト型
 #[async_trait]
 pub trait NewsFetcher {
-  // コンストラクタ
-  fn new() -> Self;
-
   // RSS取得・パースしてrss_itemsを構築する
   async fn rss_feed(&mut self) -> AppResult<()>;
 

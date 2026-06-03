@@ -2,13 +2,15 @@
 crates/news_fetch/src/livedoor_news/constants.rs
 ライブドアニュースの定数を定義する
 */
-use config::AppConfig;
+
 use shared::RSSItem;
 
 // ニュースのパースに使うやつ
+// fetch_newsでライブドア本文を囲むセレクタ
+pub const LIVEDOOR_BODY_SELECTOR: &str = ".article-body";
 
 // 取得するRSSたち
-pub const LIVEDOOR_NEWS_RSS: Vec<RSSItem> = vec![
+pub const LIVEDOOR_NEWS_RSS: &[RSSItem] = &[
   RSSItem {
     id_start: 1000,
     category: "主要",

@@ -8,7 +8,19 @@ shared = { path = "../shared" }
 config = { path = "../config" }
 infra= { path = "../infra" }
 logger = { path = "../logger" }
+http_client = { path = "../http_client" }
 
 tracing = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
+
+# 固有クレート
+# rss feed用クレート
+rss = "2.0" 
+
+# HTML解析用(セレクター)
+scraper = "0.18"
+
+# HTMLを純粋なテキストに直す用
+ammonia = "4.0"
+html-escape = "0.2"
