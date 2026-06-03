@@ -9,6 +9,7 @@ config = { path = "../config" }
 infra= { path = "../infra" }
 logger = { path = "../logger" }
 news_fetch = { path = "../news_fetch" }
+llm = { path = "../llm" }
 
 tracing = { workspace = true }
 chrono = { workspace = true }

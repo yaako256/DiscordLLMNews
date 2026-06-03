@@ -17,6 +17,15 @@ pub struct NewsItemLite {
   pub category: String,
   pub title: String,
 }
+impl From<&NewsItem> for NewsItemLite {
+  fn from(item: &NewsItem) -> Self {
+    Self {
+      id: item.id,
+      category: item.category.clone(),
+      title: item.title.clone(),
+    }
+  }
+}
 
 // =========================
 // LLMリクエスト1回目

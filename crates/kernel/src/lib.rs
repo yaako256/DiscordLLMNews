@@ -13,6 +13,8 @@ use logger;
 use shared::errors::AppResult;
 // config
 use config::AppConfig;
+// LLMリクエスト構造体
+use llm::LLMClient;
 // news_fetch
 use news_fetch::LivedoorNewsFetcher;
 use shared::NewsFetcher;
@@ -49,22 +51,31 @@ impl Kernel {
 
     // NewsFetcherのインスタンス
     let mut news_fetcher = LivedoorNewsFetcher::new(Arc::clone(&self.config));
+    // LLMリクエストインスタんんす
+    let mut llm_client: LLMClient = LLMClient::new(Arc::clone(&self.config)).await?;
     // RSSの取得
     news_fetcher.rss_feed().await?;
     // LLMの1回目リクエスト(タイトルだけで選出)
-    let debug_filter: Vec<usize> = vec![3000, 4000];
+    let news_items = news_fetcher.get_news_items();
+    let filter: Vec<usize> = llm_client.request_select_title(&news_items).await?;
+    info!("{:?}", filter);
     // IDでフィルタ
-    news_fetcher.extract_news_items(debug_filter)?;
+    news_fetcher.extract_news_items(filter)?;
 
     // ニュース本文の取得
-    info!("{:#?}", news_fetcher);
-    //news_fetcher.fetch_news().await?;
+    news_fetcher.fetch_news().await?;
     // LLMの2回目リクエスト(本文から選出)
-    let debug_filter: Vec<usize> = vec![3000, 5467];
+    let news_items = news_fetcher.get_news_items();
+    let filter: Vec<usize> = llm_client.request_select_body(&news_items).await?;
+    info!("{:?}", filter);
     // IDでフィルタ
-    news_fetcher.extract_news_items(debug_filter)?;
+    news_fetcher.extract_news_items(filter)?;
     // LLMの3回目リクエスト(本文要約・整形)
-    info!("{:#?}", news_fetcher);
+    let news_items = news_fetcher.get_news_items();
+    let text: String = llm_client.request_summarize(&news_items).await?;
+    info!("{}", text);
+
+    //info!("{:#?}", news_fetcher);
 
     //info!("{:#?}", news_fetcher);
 

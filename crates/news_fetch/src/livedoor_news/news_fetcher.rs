@@ -34,6 +34,10 @@ impl LivedoorNewsFetcher {
       news_items: Vec::new(),
     }
   }
+
+  pub fn get_news_items(&self) -> Vec<NewsItem> {
+    self.news_items.clone()
+  }
 }
 
 #[async_trait]

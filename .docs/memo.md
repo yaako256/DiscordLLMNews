@@ -8,36 +8,7 @@
 
 - プログラムが開始した段階で、dataフォルダがあるかを確認。dataフォルダがなかったら作成する処理を追加
 
-- kernelは構造体として持ち、次のように定義しようかなと悩んでいる。
-```rust
-// crates/kernel/src/lib.rs
-pub struct Kernel {
-    config: Config,
-    started_at: DateTime<FixedOffset>,
-}
-
-impl Kernel {
-    pub fn new(config: Config) -> Self {
-        Self {
-            config,
-            started_at: now_jst(), // インスタンス化時点の時刻
-        }
-    }
-
-    pub async fn feed(&self) -> AppResult<()> {
-        // started_at を infra に渡す
-        storage::init_data_dir(self.started_at).await?;
-        // ...以降のfeed処理
-    }
-
-    pub async fn send(&self) -> AppResult<()> {
-        // ファイルがなければStorage エラー
-        storage::read_news_summary().await?;
-        // ...以降のsend処理
-    }
-}
-```
-
+- apiキーはモデルと異なり、ミスらなくてもローテーションする仕組みにする。(実際は1つしか設定してないのでローテーションされない)
 
 ---
 # 開発日記

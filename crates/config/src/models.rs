@@ -54,7 +54,7 @@ pub struct LLMConfig {
 }
 
 // LLMのクールタイム関連を定義
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct LLMSleep {
   // LLMリクエストの標準クールタイム
   pub request_interval_ms: usize,
