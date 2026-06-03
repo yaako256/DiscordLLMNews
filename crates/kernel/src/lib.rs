@@ -51,8 +51,22 @@ impl Kernel {
     let mut news_fetcher = LivedoorNewsFetcher::new(Arc::clone(&self.config));
     // RSSの取得
     news_fetcher.rss_feed().await?;
+    // LLMの1回目リクエスト(タイトルだけで選出)
+    let debug_filter: Vec<usize> = vec![3000, 4000];
+    // IDでフィルタ
+    news_fetcher.extract_news_items(debug_filter)?;
 
+    // ニュース本文の取得
     info!("{:#?}", news_fetcher);
+    //news_fetcher.fetch_news().await?;
+    // LLMの2回目リクエスト(本文から選出)
+    let debug_filter: Vec<usize> = vec![3000, 5467];
+    // IDでフィルタ
+    news_fetcher.extract_news_items(debug_filter)?;
+    // LLMの3回目リクエスト(本文要約・整形)
+    info!("{:#?}", news_fetcher);
+
+    //info!("{:#?}", news_fetcher);
 
     // started_at を infra に渡す
     //storage::init_data_dir(self.started_at).await?;

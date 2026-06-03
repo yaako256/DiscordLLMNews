@@ -6,8 +6,17 @@ crates/news_fetch/src/livedoor_news/constants.rs
 use shared::RSSItem;
 
 // ニュースのパースに使うやつ
-// fetch_newsでライブドア本文を囲むセレクタ
-pub const LIVEDOOR_BODY_SELECTOR: &str = ".article-body";
+// fetch_newsで使うセレクタ
+// タイトルのHTMLセレクタ
+pub const LIVEDOOR_TITLE_SELECTOR: &str = "h1.articleTtl";
+// 本文のHTMLセレクタ
+pub const LIVEDOOR_BODY_SELECTOR: &str = "div.articleBody";
+
+// Googleの広告を除去するための正規表現
+pub const GOOGLE_AD_REGEX: &str = r"(?s)googletag\.cmd\.push\(function\(\)\s*\{.*?\}\);";
+
+// idを増やす間隔(LLMの検証用も兼ねて)
+pub const ID_INCREMENT: usize = 10;
 
 // 取得するRSSたち
 pub const LIVEDOOR_NEWS_RSS: &[RSSItem] = &[

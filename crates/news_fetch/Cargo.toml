@@ -24,3 +24,6 @@ scraper = "0.18"
 # HTMLを純粋なテキストに直す用
 ammonia = "4.0"
 html-escape = "0.2"
+
+# 正規表現用
+regex = "1"

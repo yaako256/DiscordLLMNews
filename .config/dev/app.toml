@@ -8,15 +8,15 @@
 # =========================
 [rss]
 # RSSを取得する個数
-feed_fetch_limit = 10
+feed_fetch_limit = 1
 # タイトルから選出する個数
-title_select_limit = 3
+title_select_limit = 1
 
 # サーバ負荷対策等
 # RSS取得のクールタイム
-rss_fetch_interval_ms = 1000
+rss_fetch_interval_ms = 10000
 # 本文取得のクールタイム
-body_fetch_interval_ms = 5000
+body_fetch_interval_ms = 31000
 # HTTPのタイムアウト秒数
 timeout_s = 180
 
