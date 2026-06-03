@@ -58,4 +58,7 @@ impl Kernel {
 ## 2026年06年03日
 - ProcessHistoryの型を作成
 - infraのI/Oを作成
-- 
+- loggerを作成(グローバルにした)
+- triviaのinfraを作り忘れてたのでそれを作成
+- ロガーデバッグ用に仮kernelを作成
+- tracingの初期化処理

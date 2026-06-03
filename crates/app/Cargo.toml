@@ -15,5 +15,6 @@ news_fetch= { path = "../news_fetch" }
 llm= { path = "../llm" }
 
 
+tracing-subscriber = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }

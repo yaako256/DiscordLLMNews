@@ -4,8 +4,9 @@ crates/kernel/src/lib.rs
 
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
-
-// ロガー
+// 通常ログ用
+use tracing::{error, info, warn};
+// 通知ログ用
 use logger;
 // 共通型
 use shared::errors::AppResult;
@@ -29,14 +30,17 @@ impl Kernel {
     println!("feed");
 
     logger::info("debug", "infoデバッグメッセージ");
+    info!("debug infoデバッグメッセージ");
     logger::warn("debug", "warnデバッグメッセージ");
+    warn!("debug warnデバッグメッセージ");
     logger::error("debug", "errorデバッグメッセージ");
+    error!("debug errorデバッグメッセージ");
 
     // 書き込み
     infra::write_notification_log().await?;
 
     for e in logger::to_chunks(5000) {
-      println!("{}", e);
+      info!("{}", e);
     }
 
     // started_at を infra に渡す

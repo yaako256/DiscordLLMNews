@@ -9,4 +9,5 @@ config = { path = "../config" }
 infra= { path = "../infra" }
 logger = { path = "../logger" }
 
+tracing = { workspace = true }
 chrono = { workspace = true }
