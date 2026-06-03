@@ -72,5 +72,5 @@ pub struct SummarizeRequest {
 /// 要約・整形後の文字列を戻り値とする
 #[derive(Debug, Deserialize)]
 pub struct SummaryResponse {
-  pub text: String,
+  pub contents: String,
 }

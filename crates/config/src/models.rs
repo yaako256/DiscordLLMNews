@@ -22,8 +22,6 @@ pub struct AppConfig {
 pub struct RSSConfig {
   // RSSを取得する個数
   pub feed_fetch_limit: usize,
-  // タイトルから選出する個数
-  pub title_select_limit: usize,
 
   // サーバ負荷対策
   // RSS取得のクールタイム
@@ -42,6 +40,11 @@ pub struct LLMConfig {
   pub gemini_api_key: Vec<String>,
   // モデルの定義
   pub fallback_models: Vec<String>,
+
+  // タイトルから選出する個数
+  pub title_select_limit: usize,
+  // 本文から選出する個数
+  pub body_select_limit: usize,
 
   // HTTPのタイムアウト秒数
   pub timeout_s: usize,

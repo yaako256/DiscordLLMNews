@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::time::{Duration, sleep};
+use tracing::{error, info};
 
 use config::AppConfig;
 use http_client;
@@ -83,27 +84,28 @@ pub struct LLMClient {
 impl LLMClient {
   pub async fn new(config: Arc<AppConfig>) -> AppResult<Self> {
     // trivia_historyを取得してJSON文字列に変換
-    let trivia_history = infra::read_trivia_history(10).await?;
-    let trivia_history_json = serde_json::to_string(&trivia_history)
-      .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
+    //let trivia_history = infra::read_trivia_history(10).await?;
+    //let trivia_history_json = serde_json::to_string(&trivia_history)
+    //  .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
 
     // new時点でreplace可能なプレースホルダーをすべて変換
+    // {DATA_JSON}はリクエスト時に埋め込むためここでは触らない
     let select_title_prompt = config
       .prompts
       .select_title
-      .replace("{SELECT_LIMIT}", &config.rss.title_select_limit.to_string());
+      .replace("{SELECT_LIMIT}", &config.llm.title_select_limit.to_string());
 
     let select_body_prompt = config
       .prompts
       .select_body
-      .replace("{SELECT_LIMIT}", &config.rss.title_select_limit.to_string());
+      .replace("{SELECT_LIMIT}", &config.llm.body_select_limit.to_string());
 
     // summarizeのみTRIVIA_HISTORYもここで埋め込む
-    // {DATA_JSON}はリクエスト時に埋め込むためここでは触らない
     let summarize_prompt = config
       .prompts
       .summarize
-      .replace("{TRIVIA_HISTORY}", &trivia_history_json);
+      //  .replace("{TRIVIA_HISTORY}", &trivia_history_json);
+      .replace("{DATE}", "2026年6月3日");
 
     Ok(Self {
       select_title_prompt,
@@ -124,6 +126,7 @@ impl LLMClient {
 
   /// 1回目: タイトルのみで選出
   pub async fn request_select_title(&mut self, items: &[NewsItem]) -> AppResult<Vec<usize>> {
+    info!("[llm request] 1回目開始!");
     let request = SelectByTitleRequest {
       items: items.iter().map(|item| NewsItemLite::from(item)).collect(),
     };
@@ -136,6 +139,7 @@ impl LLMClient {
 
   /// 2回目: 本文も含めて選出
   pub async fn request_select_body(&mut self, items: &[NewsItem]) -> AppResult<Vec<usize>> {
+    info!("[llm request] 2回目開始!");
     let request = SelectByBodyRequest {
       items: items.to_vec(),
     };
@@ -148,6 +152,7 @@ impl LLMClient {
 
   /// 3回目: 要約・整形
   pub async fn request_summarize(&mut self, items: &[NewsItem]) -> AppResult<String> {
+    info!("[llm request] 3回目開始!");
     let request = SummarizeRequest {
       items: items.to_vec(),
     };
@@ -155,7 +160,7 @@ impl LLMClient {
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.summarize_prompt.clone();
     let res: SummaryResponse = self.request_with_retry(&prompt, &items_json).await?;
-    Ok(res.text)
+    Ok(res.contents)
   }
 
   // ---------------------------------------------------------------
@@ -182,6 +187,7 @@ impl LLMClient {
           return Ok(result);
         }
         Err(e) => {
+          error!("リクエスト失敗 attempt:{attempt} model:{model} {e}");
           logger::warn(
             "llm",
             format!("リクエスト失敗 attempt:{attempt} model:{model} {e}"),
@@ -192,7 +198,9 @@ impl LLMClient {
 
           if attempt < self.max_retry {
             let wait = self.backoff_duration(attempt);
+            info!("[llm request] {:.2}秒待ちます！", wait.as_secs_f64());
             sleep(wait).await;
+            info!("[llm request] 待ち終わりました！");
           }
         }
       }
