@@ -125,9 +125,9 @@ impl NotificationLogEntry {
   // 文字列として整形
   fn to_formatted_string(&self) -> String {
     format!(
-      "[{}] [{:<5}] [{}] {}\n",
+      "[{}] {:<7}[{}] {}\n",
       self.logged_at.format("%Y/%m/%d %H:%M:%S"),
-      self.level.as_str(),
+      format!("[{}]", self.level.as_str()),
       self.stage,
       self.message
     )
