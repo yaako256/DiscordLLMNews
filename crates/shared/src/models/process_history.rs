@@ -15,5 +15,5 @@ pub struct ProcessHistory {
   pub success: bool,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub error_stage: Option<String>,
+  pub error_summary: Option<String>,
 }
