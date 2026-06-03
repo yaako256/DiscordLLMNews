@@ -15,4 +15,5 @@ pub use models::{
   news_item::NewsItem,
   process_history::ProcessHistory,
   state::NewsSummary,
+  trivia_history::TriviaHistory,
 };
