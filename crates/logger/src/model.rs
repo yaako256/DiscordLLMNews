@@ -17,7 +17,7 @@ pub struct NotificationLogLogger {
   entries: Vec<NotificationLogEntry>,
 }
 impl NotificationLogLogger {
-  pub fn init() -> Self {
+  pub fn new() -> Self {
     Self {
       entries: Vec::new(),
     }

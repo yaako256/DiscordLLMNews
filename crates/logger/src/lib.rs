@@ -2,6 +2,50 @@
 crates/logger/src/lib.rs
 グローバルで持つloggerの定義
 */
-mod model;
+// 標準ライブラリ
+// 共通のグローバル変数とするよう
+use std::sync::{Mutex, OnceLock};
 
-pub use model::NotificationLogLogger;
+// ロガー構造体
+mod model;
+use model::NotificationLogLogger;
+
+static LOGGER: OnceLock<Mutex<NotificationLogLogger>> = OnceLock::new();
+
+pub fn init() {
+  LOGGER
+    .set(Mutex::new(NotificationLogLogger::new()))
+    .unwrap();
+}
+
+pub fn info(stage: impl Into<String>, msg: impl Into<String>) {
+  if let Some(logger) = LOGGER.get() {
+    logger.lock().unwrap().info(stage, msg);
+  }
+}
+
+pub fn warn(stage: impl Into<String>, msg: impl Into<String>) {
+  if let Some(logger) = LOGGER.get() {
+    logger.lock().unwrap().warn(stage, msg);
+  }
+}
+
+pub fn error(stage: impl Into<String>, msg: impl Into<String>) {
+  if let Some(logger) = LOGGER.get() {
+    logger.lock().unwrap().error(stage, msg);
+  }
+}
+
+pub fn to_jsonl_string() -> String {
+  LOGGER
+    .get()
+    .map(|l| l.lock().unwrap().to_jsonl_string())
+    .unwrap_or_default()
+}
+
+pub fn to_chunks(limit: usize) -> Vec<String> {
+  LOGGER
+    .get()
+    .map(|l| l.lock().unwrap().to_chunks(limit))
+    .unwrap_or_default()
+}

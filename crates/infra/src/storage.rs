@@ -16,13 +16,13 @@ use uuid::Uuid;
 use chrono::{DateTime, FixedOffset};
 
 // workspace内クレート
-use logger::NotificationLogLogger;
+use logger;
 use shared::constants::file::{
   DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PROCESS_HISTORY_FILE_NAME,
   TRIVIA_HISTORY_FILE_NAME,
 };
 use shared::{
-  NewsSummary,
+  NewsSummary, TriviaHistory,
   errors::{AppError, AppResult},
 };
 
@@ -100,19 +100,19 @@ pub async fn read_news_summary() -> AppResult<NewsSummary> {
 // ---------------------------------------------------------------
 /// notification_log.json を atomic に書き込む
 /// 一時ファイルに書いてからリネームする（書き込み途中でプロセスが死んでも壊れない）
-pub async fn write_notification_log(logger: &NotificationLogLogger) -> AppResult<()> {
+pub async fn write_notification_log() -> AppResult<()> {
   // データフォルダのパスを作成
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // notification_log.jsonlのパスを作成
   let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_NAME);
 
   // jsonlシリアライズ
-  let json = logger.to_jsonl_string();
+  let json = logger::to_jsonl_string();
 
   // 書き込み
   atomic_write(&notification_path, json.as_bytes()).await
 }
-
+/*
 /// notification_log.jsonl を読み込む(send処理で使用)
 pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
   // &strをパス型に変換
@@ -136,7 +136,7 @@ pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
   serde_json::from_slice(&bytes)
     .map_err(|e| AppError::JsonParse(format!("notification_log パース失敗: {e}")))
 }
-
+*/
 // ---------------------------------------------------------------
 // trivia_history.jsonl
 // ---------------------------------------------------------------
@@ -148,7 +148,7 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
   let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
 
   // ファイル存在チェックを明示的に行い、専用メッセージで返す
-  if !notification_path.exists() {
+  if !trivia_history_path.exists() {
     return Err(AppError::Storage(
       "trivia_history.jsonl が存在しない。feed が未実行の可能性があり".to_string(),
     ));
@@ -160,14 +160,14 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
     .map_err(|e| AppError::Storage(format!("trivia_history 読み込み失敗: {e}")))?;
 
   // jsonをデシリアライズ
-  let mut histories: Vec<TriviaHistory> = serde_json::from_slice(&bytes)
+  let histories: Vec<TriviaHistory> = serde_json::from_slice(&bytes)
     .map_err(|e| AppError::JsonParse(format!("trivia_history パース失敗: {e}")))?;
 
   // 最新n件に絞り込む
   let latest_histories: Vec<TriviaHistory> = histories
     .into_iter() //所有権ごともらう
     .rev() // 後ろが新しいため、これで新しい順にする
-    .take(n) // n件だけ取得
+    .take(get_num) // n件だけ取得
     .collect(); // ベクターに変換
 
   Ok(latest_histories)

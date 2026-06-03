@@ -6,7 +6,7 @@ crates/kernel/src/lib.rs
 use chrono::{DateTime, FixedOffset, Utc};
 
 // ロガー
-use logger::NotificationLogLogger;
+use logger;
 // 共通型
 use shared::errors::AppResult;
 // config
@@ -15,7 +15,6 @@ use config::AppConfig;
 pub struct Kernel {
   config: AppConfig,
   started_at: DateTime<FixedOffset>,
-  logger: NotificationLogLogger,
 }
 
 impl Kernel {
@@ -23,21 +22,23 @@ impl Kernel {
     Self {
       config,
       started_at: Utc::now().fixed_offset(), // インスタンス化時点の時刻
-      logger: NotificationLogLogger::init(), // ロガーの起動
     }
   }
 
   pub async fn feed(&mut self) -> AppResult<()> {
     println!("feed");
 
-    self.logger.info("debug", "infoデバッグメッセージ");
-    self.logger.warn("debug", "warnデバッグメッセージ");
-    self.logger.error("debug", "errorデバッグメッセージ");
+    logger::info("debug", "infoデバッグメッセージ");
+    logger::warn("debug", "warnデバッグメッセージ");
+    logger::error("debug", "errorデバッグメッセージ");
 
     // 書き込み
-    infra::write_notification_log(&self.logger).await;
+    infra::write_notification_log().await?;
 
-    println!("{}", self.logger.to_jsonl_string());
+    for e in logger::to_chunks(5000) {
+      println!("{}", e);
+    }
+
     // started_at を infra に渡す
     //storage::init_data_dir(self.started_at).await?;
     // ...以降のfeed処理

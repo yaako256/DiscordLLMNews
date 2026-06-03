@@ -8,7 +8,9 @@ use shared::errors::AppResult;
 #[tokio::main]
 async fn main() -> AppResult<()> {
   println!("Hello, world!");
-
+  // ロガーの起動
+  logger::init();
+  // configのロード
   let config = config::load_config()?;
 
   //println!("{:#?}", config);
