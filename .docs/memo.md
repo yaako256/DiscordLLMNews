@@ -62,3 +62,8 @@ impl Kernel {
 - triviaのinfraを作り忘れてたのでそれを作成
 - ロガーデバッグ用に仮kernelを作成
 - tracingの初期化処理
+- NewsFetcherのトレイトの作成
+- グローバルなHTTP Clientの作成
+- rssの取得部分作成
+- 本文の取得部分作成
+- idフィルタ部分作成(NewsFetcher構造体の完成)

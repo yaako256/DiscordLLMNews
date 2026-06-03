@@ -11,5 +11,6 @@ pub struct NewsItem {
   pub id: usize,
   pub category: String,
   pub title: String,
+  pub url: String,
   pub body: Option<String>,
 }

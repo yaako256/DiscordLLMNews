@@ -8,51 +8,17 @@
 # =========================
 [rss]
 # RSSを取得する個数
-feed_fetch_limit = 10
+feed_fetch_limit = 1
 # タイトルから選出する個数
-title_select_limit = 3
+title_select_limit = 1
 
 # サーバ負荷対策等
 # RSS取得のクールタイム
-rss_fetch_interval_ms = 1000
+rss_fetch_interval_ms = 10000
 # 本文取得のクールタイム
-body_fetch_interval_ms = 5000
+body_fetch_interval_ms = 31000
 # HTTPのタイムアウト秒数
 timeout_s = 180
-
-# RSS取得のItem
-# ここが要
-# この定義を別の場所でやるかは要件等
-[[rss.rss_items]]
-id_start = 1000
-category = "主要"
-rss_url = "https://news.livedoor.com/topics/rss/top.xml"
-
-[[rss.rss_items]]
-id_start = 2000
-category = "国内"
-rss_url = "https://news.livedoor.com/topics/rss/dom.xml"
-
-[[rss.rss_items]]
-id_start = 3000
-category = "海外"
-rss_url = "https://news.livedoor.com/topics/rss/int.xml"
-
-[[rss.rss_items]]
-id_start = 4000
-category = "IT・経済"
-rss_url = "https://news.livedoor.com/topics/rss/eco.xml"
-
-[[rss.rss_items]]
-id_start = 5000
-category = "芸能"
-rss_url = "https://news.livedoor.com/topics/rss/ent.xml"
-
-[[rss.rss_items]]
-id_start = 6000
-category = "海外"
-rss_url = "https://news.livedoor.com/topics/rss/spo.xml"
-
 
 # =========================
 # LLM関連の設定

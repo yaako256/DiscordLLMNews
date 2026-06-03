@@ -24,8 +24,6 @@ pub struct RSSConfig {
   pub feed_fetch_limit: usize,
   // タイトルから選出する個数
   pub title_select_limit: usize,
-  // RSSのitem
-  pub rss_items: Vec<RSSItem>,
 
   // サーバ負荷対策
   // RSS取得のクールタイム
@@ -35,17 +33,6 @@ pub struct RSSConfig {
 
   // HTTPのタイムアウト秒数
   pub timeout_s: usize,
-}
-
-// RSSのitem
-#[derive(Debug, Deserialize)]
-pub struct RSSItem {
-  // ニュースにidを振るときの初期番号
-  pub id_start: usize,
-  // ニュースのカテゴリ
-  pub category: String,
-  // RSSのURL
-  pub rss_url: String,
 }
 
 /// LLM関連の設定

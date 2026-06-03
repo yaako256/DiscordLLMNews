@@ -11,7 +11,7 @@ pub enum AppError {
   #[error("RssFeedエラー: {0}")]
   RSSFeed(String),
   #[error("ニュース本文取得エラー: {0}")]
-  ArticleFeed(#[from] serde_json::Error),
+  ArticleFeed(String),
   #[error("LLMリクエストエラー: {0}")]
   LLMRequest(String),
   #[error("Jsonパースエラー: {0}")]
