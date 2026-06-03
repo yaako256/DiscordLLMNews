@@ -2,14 +2,12 @@
 crates/llm/src/lib.rs
 LLMへのリクエストを定義
 */
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+
+use config::AppConfig;
 use std::sync::Arc;
 use tokio::time::{Duration, sleep};
 use tracing::{error, info};
 
-use config::AppConfig;
-use http_client;
 use logger;
 use shared::{
   NewsItem, NewsItemLite, SelectByBodyRequest, SelectByTitleRequest, SelectResponse,
@@ -17,53 +15,14 @@ use shared::{
   errors::{AppError, AppResult},
 };
 
-// ---------------------------------------------------------------
-// Gemini API 通信用の内部構造体
-// ---------------------------------------------------------------
-mod gemini {
-  use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
-  // リクエスト用
-  #[derive(Serialize)]
-  pub struct Request {
-    pub contents: Vec<Content>,
-  }
+mod gemini;
+mod request;
 
-  #[derive(Serialize)]
-  pub struct Content {
-    pub parts: Vec<Part>,
-  }
-
-  #[derive(Serialize)]
-  pub struct Part {
-    pub text: String,
-  }
-
-  // レスポンス用
-  #[derive(Deserialize)]
-  pub struct Response {
-    pub candidates: Vec<Candidate>,
-  }
-
-  #[derive(Deserialize)]
-  pub struct Candidate {
-    pub content: ResContent,
-  }
-
-  #[derive(Deserialize)]
-  pub struct ResContent {
-    pub parts: Vec<ResPart>,
-  }
-
-  #[derive(Deserialize)]
-  pub struct ResPart {
-    pub text: String,
-  }
-}
-
-// ---------------------------------------------------------------
+// -------------------------
 // LLMClient
-// ---------------------------------------------------------------
+// -------------------------
 pub struct LLMClient {
   // replace済みプロンプト
   select_title_prompt: String,
@@ -123,7 +82,6 @@ impl LLMClient {
   // ---------------------------------------------------------------
   // 公開インターフェース
   // ---------------------------------------------------------------
-
   /// 1回目: タイトルのみで選出
   pub async fn request_select_title(&mut self, items: &[NewsItem]) -> AppResult<Vec<usize>> {
     info!("[llm request] 1回目開始!");
@@ -180,7 +138,7 @@ impl LLMClient {
       let api_key = self.current_api_key();
       let model = self.current_model();
 
-      match send_request::<T>(&api_key, &model, &prompt).await {
+      match request::send_request::<T>(&api_key, &model, &prompt).await {
         Ok(result) => {
           // 成功時もAPIキーをローテーション
           self.api_key_index += 1;
@@ -230,71 +188,4 @@ impl LLMClient {
     let ms = ms.min(self.sleep.backoff_max_time as f64) as u64;
     Duration::from_millis(ms)
   }
-}
-
-// ---------------------------------------------------------------
-// Gemini API へのHTTPリクエスト
-// ---------------------------------------------------------------
-
-/// Gemini APIにリクエストを送り、TにDeserializeして返す
-async fn send_request<T: DeserializeOwned>(
-  api_key: &str,
-  model: &str,
-  prompt: &str,
-) -> AppResult<T> {
-  let url = format!(
-    "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-    model, api_key
-  );
-
-  let request_body = gemini::Request {
-    contents: vec![gemini::Content {
-      parts: vec![gemini::Part {
-        text: prompt.to_string(),
-      }],
-    }],
-  };
-
-  // リクエスト送信
-  let response = http_client::llm()
-    .post(&url)
-    .json(&request_body)
-    .send()
-    .await
-    .map_err(|e| AppError::LLMRequest(format!("HTTPリクエスト失敗: {e}")))?;
-
-  // ステータスコード確認
-  let status = response.status();
-  if !status.is_success() {
-    let text = response.text().await.unwrap_or_default();
-    return Err(AppError::LLMRequest(format!(
-      "HTTPエラー: {status} body:{text}"
-    )));
-  }
-
-  // GeminiレスポンスのJSONパース
-  let gemini_res: gemini::Response = response
-    .json()
-    .await
-    .map_err(|e| AppError::LLMRequest(format!("Geminiレスポンスパース失敗: {e}")))?;
-
-  // candidatesからテキスト抽出
-  let text = gemini_res
-    .candidates
-    .into_iter()
-    .next()
-    .and_then(|c| c.content.parts.into_iter().next())
-    .map(|p| p.text)
-    .ok_or_else(|| AppError::LLMRequest("レスポンスにtextが含まれていません".to_string()))?;
-
-  // ```jsonなどのコードブロックを除去
-  let clean = text
-    .trim()
-    .trim_start_matches("```json")
-    .trim_start_matches("```")
-    .trim_end_matches("```")
-    .trim();
-
-  serde_json::from_str::<T>(clean)
-    .map_err(|e| AppError::JsonParse(format!("LLMレスポンスのJSONパース失敗: {e} raw:{clean}")))
 }
