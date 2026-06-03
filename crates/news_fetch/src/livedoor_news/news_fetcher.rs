@@ -1,6 +1,7 @@
 // 非同期トレイト用
 use async_trait::async_trait;
 
+use super::constants::LIVEDOOR_NEWS_RSS;
 use config::AppConfig;
 use logger;
 use shared::NewsFetcher;
@@ -13,6 +14,14 @@ pub struct LivedoorNewsFetcher {
 }
 #[async_trait]
 impl NewsFetcher for LivedoorNewsFetcher {
+  fn new(config: AppConfig) -> Self {
+    Self {
+      config,
+      rss_items: LIVEDOOR_NEWS_RSS,
+      news_items: Vec::new(),
+    }
+  }
+
   // RSS取得・パースしてnews_itemsを構築する
   async fn rss_feed(&mut self) -> AppResult<()> {
     Ok(())
