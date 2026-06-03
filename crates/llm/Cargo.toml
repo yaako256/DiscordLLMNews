@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# 同じworkspace内の別クレート
+shared = { path = "../shared" }
+config = { path = "../config" }
+logger = { path = "../logger" }
+infra = { path = "../infra" }
+http_client = { path = "../http_client" }
+
+
+# workspace共通クレート
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }

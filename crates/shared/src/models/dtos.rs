@@ -17,6 +17,15 @@ pub struct NewsItemLite {
   pub category: String,
   pub title: String,
 }
+impl From<&NewsItem> for NewsItemLite {
+  fn from(item: &NewsItem) -> Self {
+    Self {
+      id: item.id,
+      category: item.category.clone(),
+      title: item.title.clone(),
+    }
+  }
+}
 
 // =========================
 // LLMリクエスト1回目
@@ -63,5 +72,5 @@ pub struct SummarizeRequest {
 /// 要約・整形後の文字列を戻り値とする
 #[derive(Debug, Deserialize)]
 pub struct SummaryResponse {
-  pub text: String,
+  pub contents: String,
 }

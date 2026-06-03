@@ -6,4 +6,4 @@ mod loader;
 mod models;
 
 pub use loader::load_config;
-pub use models::AppConfig;
+pub use models::{AppConfig, LLMSleep};

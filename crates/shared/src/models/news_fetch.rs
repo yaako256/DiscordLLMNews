@@ -4,7 +4,6 @@ RSSの取得や本文を取得するときに使う構造体の定義
 */
 // 非同期トレイト用
 use super::super::errors::AppResult;
-use super::news_item::NewsItem;
 use async_trait::async_trait;
 use serde::Serialize;
 
