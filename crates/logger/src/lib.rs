@@ -8,6 +8,7 @@ use std::sync::{Mutex, OnceLock};
 
 // ロガー構造体
 mod model;
+pub use model::NotificationLogEntry;
 use model::NotificationLogLogger;
 
 static LOGGER: OnceLock<Mutex<NotificationLogLogger>> = OnceLock::new();
