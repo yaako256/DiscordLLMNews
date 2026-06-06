@@ -10,6 +10,8 @@ use shared::errors::{AppError, AppResult};
 // 外部ライブラリ
 // ログ出力用
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+// 時間型用
+use chrono::Utc;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -17,9 +19,12 @@ async fn main() -> AppResult<()> {
   // ----------------------
   // 初期設定
   // ----------------------
+  // スタート時間の取得
+  let start_at = Utc::now().fixed_offset();
+  // configのロード
+  let config = Arc::new(config::load_config()?);
   // 通知用ロガーの起動
   logger::init();
-
   // ログ出力の設定
   // ログファイル
   {
@@ -38,41 +43,14 @@ async fn main() -> AppResult<()> {
       .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter)))
       .init();
   }
-
-  // configのロード
-  let config = Arc::new(config::load_config()?);
-
   // HTTP Clientの起動(グローバルで宣言してそれを使いまわす)
   http_client::init(config.rss.timeout_s as u64, config.llm.timeout_s as u64);
 
-  //println!("{:#?}", config);
-
-  // DataのI/Oのデバッグ
-  /*
-  let started_at: chrono::DateTime<chrono::FixedOffset> = chrono::Utc::now().fixed_offset();
-  // init処理
-  infra::init_data_dir(started_at).await?;
-  // news_summaryの読み込み
-  let aa = infra::read_news_summary().await?;
-  println!("{:#?}", aa);
-  // news_summaryの書き込み
-  infra::write_news_summary(&shared::NewsSummary::Ready {
-    prepared_at: chrono::Utc::now().fixed_offset(),
-    message_body: "ニュース完成！".to_string(),
-  })
-  .await?;
-  // process_historyの追加
-  infra::append_process_history(&shared::ProcessHistory {
-    process: "debug".to_string(),
-    started_at: started_at,
-    finished_at: chrono::Utc::now().fixed_offset(),
-    success: true,
-    error_stage: None,
-  })
-  .await?;
-  */
-
-  let mut knl = kernel::Kernel::new(Arc::clone(&config));
+  // ----------------------
+  // 処理フロー
+  // ----------------------
+  let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
+  // feed処理
   knl.feed().await?;
 
   Ok(())

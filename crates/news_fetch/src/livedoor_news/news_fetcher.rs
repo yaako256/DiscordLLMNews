@@ -1,16 +1,24 @@
+/*
+crates/news_fetch/src/livedoor_news/news_fetcher.rs
+ライブドアニュースのNewsFetcher
+*/
+// 標準ライブラリ
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+// 非同期処理用
+use tokio::time::{Duration, sleep};
 // 非同期トレイト用
 use async_trait::async_trait;
+// 正規表現用
 use regex::Regex;
+// HTMLセレクタ
 use scraper::{Html, Selector};
-use tokio::time::{Duration, sleep};
-use tracing::info;
+use tracing::warn;
+// 通常ログ
+use tracing::{debug, info};
 
-use super::constants::{
-  GOOGLE_AD_REGEX, ID_INCREMENT, LIVEDOOR_BODY_SELECTOR, LIVEDOOR_NEWS_RSS, LIVEDOOR_TITLE_SELECTOR,
-};
+// workspace内クレート
 use config::AppConfig;
 use http_client;
 use logger;
@@ -18,6 +26,11 @@ use shared::NewsFetcher;
 use shared::{
   NewsItem, RSSItem,
   errors::{AppError, AppResult},
+};
+
+// 自クレート
+use super::constants::{
+  GOOGLE_AD_REGEX, ID_INCREMENT, LIVEDOOR_BODY_SELECTOR, LIVEDOOR_NEWS_RSS, LIVEDOOR_TITLE_SELECTOR,
 };
 
 #[derive(Debug)]
@@ -35,6 +48,7 @@ impl LivedoorNewsFetcher {
     }
   }
 
+  /// news_itemsのゲッター関数
   pub fn get_news_items(&self) -> Vec<NewsItem> {
     self.news_items.clone()
   }
@@ -46,6 +60,8 @@ impl NewsFetcher for LivedoorNewsFetcher {
   // RSS取得・パース → news_items(bodyなし)を構築
   // ------------------------------------------
   async fn rss_feed(&mut self) -> AppResult<()> {
+    info!("RSS取得開始");
+    // configからこれらだけ先に編集化
     let limit = self.config.rss.feed_fetch_limit;
     let interval = self.config.rss.rss_fetch_interval_ms;
 
@@ -62,16 +78,17 @@ impl NewsFetcher for LivedoorNewsFetcher {
             "rss_feed",
             format!("[{}] RSS取得失敗: {e}", rss_item.category),
           );
+          warn!("[{}] RSS取得失敗: {e}", rss_item.category);
         }
       }
       // 最後の要素はsleepしない
       if i < items_len - 1 {
-        info!(
-          "[rss_feed] [{}] 今から{}ms待つよ",
+        debug!(
+          "[rss_feed] [{}] 今から{}ms待機",
           rss_item.category, interval
         );
         sleep(Duration::from_millis(interval as u64)).await;
-        info!("[rss_feed] [{}] 待ち終わったよ", rss_item.category);
+        debug!("[rss_feed] [{}] 待機終了", rss_item.category);
       }
     }
 
@@ -81,6 +98,7 @@ impl NewsFetcher for LivedoorNewsFetcher {
       ));
     }
 
+    info!("RSS取得完了");
     Ok(())
   }
 
@@ -89,6 +107,7 @@ impl NewsFetcher for LivedoorNewsFetcher {
   // ----------------------------------------
   // rss_itemsからニュース本文を取得してnews_itemsを構築する
   async fn fetch_news(&mut self) -> AppResult<()> {
+    info!("ニュース本文取得開始");
     // 本文取得インターバル
     let interval = self.config.rss.body_fetch_interval_ms;
 
@@ -114,16 +133,47 @@ impl NewsFetcher for LivedoorNewsFetcher {
         Err(e) => {
           // 1記事失敗しても続行
           logger::warn("fetch_news", format!("[id:{}] 本文取得失敗: {e}", item.id));
+          warn!("[fetch_news] [id:{}] 本文取得失敗: {e}", item.id)
         }
       }
       // 最後の要素はsleepしない
       if i < items_len - 1 {
-        info!("[fetch_news] [{}] 今から{}ms待つよ", item.id, interval);
+        debug!("[fetch_news] [id:{}] {}ms待機", item.id, interval);
         sleep(Duration::from_millis(interval as u64)).await;
-        info!("[fetch_news] [{}] 待ち終わったよ", item.id);
+        debug!("[fetch_news] [id:{}] 待機終了", item.id);
       }
     }
 
+    // body: None の記事をフィルタして除外
+    let before_len = self.news_items.len();
+    self.news_items.retain(|item| {
+      if item.body.is_none() {
+        logger::warn(
+          "fetch_news",
+          format!("[id:{}] bodyがNoneのため除外", item.id),
+        );
+        false
+      } else {
+        true
+      }
+    });
+    let after_len = self.news_items.len();
+
+    if before_len != after_len {
+      info!(
+        "[fetch_news] body取得失敗により {}件除外 (残り{}件)",
+        before_len - after_len,
+        after_len
+      );
+    }
+
+    if self.news_items.is_empty() {
+      return Err(AppError::ArticleFeed(
+        "全記事の本文取得に失敗しました".to_string(),
+      ));
+    }
+
+    info!("ニュース本文取得完了");
     Ok(())
   }
 
@@ -131,6 +181,7 @@ impl NewsFetcher for LivedoorNewsFetcher {
   // IDフィルタでnews_itemsを絞り込む
   // ---------------------------------------
   fn extract_news_items(&mut self, ids: Vec<usize>) -> AppResult<()> {
+    info!("IDフィルタ開始");
     let extracted: Vec<NewsItem> = ids
       .iter()
       .filter_map(
@@ -147,7 +198,13 @@ impl NewsFetcher for LivedoorNewsFetcher {
       )
       .collect();
 
+    if extracted.len() == 0 {
+      return Err(AppError::RSSFeed(
+        "IDフィルタでitemが0個になりました".to_string(),
+      ));
+    }
     self.news_items = extracted;
+    info!("IDフィルタ完了");
     Ok(())
   }
 }

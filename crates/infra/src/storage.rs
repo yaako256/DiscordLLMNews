@@ -39,8 +39,11 @@ pub async fn init_data_dir(started_at: DateTime<FixedOffset>) -> AppResult<()> {
   // dataフォルダがあるか確認。なかったら再帰的に作成する
   ensure_dir(data_dir).await?;
 
-  // runningで上書き
+  // news_summary.jsonをrunningで上書き
   write_news_summary(&NewsSummary::Running { started_at }).await?;
+
+  // notification_log.jsonを初期化
+  write_notification_log_init().await?;
 
   Ok(())
 }
@@ -98,6 +101,15 @@ pub async fn read_news_summary() -> AppResult<NewsSummary> {
 // ---------------------------------------------------------------
 // notification_log.jsonl
 // ---------------------------------------------------------------
+/// notification_log.json を 初期化(空) する
+pub async fn write_notification_log_init() -> AppResult<()> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // notification_log.jsonlのパスを作成
+  let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_NAME);
+  // 書き込み
+  atomic_write(&notification_path, "".as_bytes()).await
+}
 /// notification_log.json を atomic に書き込む
 /// 一時ファイルに書いてからリネームする（書き込み途中でプロセスが死んでも壊れない）
 pub async fn write_notification_log() -> AppResult<()> {

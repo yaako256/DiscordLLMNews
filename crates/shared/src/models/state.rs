@@ -22,6 +22,7 @@ pub enum NewsSummary {
   },
   Failed {
     started_at: DateTime<FixedOffset>,
+    finished_at: DateTime<FixedOffset>,
     error_summary: String,
   },
   Sent {
