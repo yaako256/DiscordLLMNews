@@ -40,7 +40,7 @@ impl NotificationLogLogger {
   // ログをpushする共通型
   fn push(&mut self, level: LogLevel, stage: impl Into<String>, msg: impl Into<String>) {
     self.entries.push(NotificationLogEntry {
-      logged_at: Utc::now().fixed_offset(),
+      logged_at: Utc::now().with_timezone(&time::jst()),
       level,
       stage: stage.into(),
       message: msg.into(),

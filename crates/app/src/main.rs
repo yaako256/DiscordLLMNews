@@ -5,8 +5,8 @@ crates/app/src/main.rs
 use std::sync::Arc;
 
 // エラー型用
+use shared::constants::time;
 use shared::errors::{AppError, AppResult};
-
 // 外部ライブラリ
 // ログ出力用
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
@@ -20,7 +20,7 @@ async fn main() -> AppResult<()> {
   // 初期設定
   // ----------------------
   // スタート時間の取得
-  let start_at = Utc::now().fixed_offset();
+  let start_at = Utc::now().with_timezone(&time::jst());
   // configのロード
   let config = Arc::new(config::load_config()?);
   // 通知用ロガーの起動
