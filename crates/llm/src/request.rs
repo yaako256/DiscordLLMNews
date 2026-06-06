@@ -44,15 +44,39 @@ pub async fn send_request<T: DeserializeOwned>(
     .post(&url)
     .json(&request_body)
     .send()
-    .await
-    .map_err(|e| AppError::LLMRequest(format!("HTTPリクエスト失敗: {e}")))?;
+    .await;
+
+  // エラーだった場合の処理
+  let response = match response {
+    Ok(res) => res,
+    Err(e) => {
+      // エラーの種類を判定して簡潔なラベルを作成
+      let error_kind = if e.is_timeout() {
+        "Timeout"
+      } else if e.is_connect() {
+        "ConnectError"
+      } else if e.is_body() {
+        "BodyError"
+      } else if e.is_request() {
+        "RequestError"
+      } else {
+        //"Unknown"
+        "UnexpectedError"
+      };
+
+      return Err(AppError::LLMRequest(format!(
+        "通信エラー(kind: {})",
+        error_kind
+      )));
+    }
+  };
 
   // ステータスコード確認
   let status = response.status();
   if !status.is_success() {
     let text = response.text().await.unwrap_or_default();
     return Err(AppError::LLMRequest(format!(
-      "HTTPエラー: {status} body:{text}"
+      "APIエラー: status:{status} body:{text}"
     )));
   }
 

@@ -153,10 +153,10 @@ impl LLMClient {
           return Ok(result);
         }
         Err(e) => {
-          error!("リクエスト失敗 attempt:{attempt} model:{model} {e}");
+          error!("試行 {}/{} model:{} {e}", attempt, self.max_retry, model);
           logger::warn(
             "llm",
-            format!("リクエスト失敗 attempt:{attempt} model:{model} {e}"),
+            format!("試行 {}/{} model:{} {e}", attempt, self.max_retry, model),
           );
           // APIキーとモデルを両方ローテーション
           self.api_key_index += 1;
@@ -164,9 +164,9 @@ impl LLMClient {
 
           if attempt < self.max_retry {
             let wait = self.backoff_duration(attempt);
-            info!("[llm request] {:.2}秒待ちます！", wait.as_secs_f64());
+            info!("{:.2}秒待機開始", wait.as_secs_f64());
             sleep(wait).await;
-            info!("[llm request] 待ち終わりました！");
+            info!("待機完了");
           }
         }
       }

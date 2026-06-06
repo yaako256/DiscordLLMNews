@@ -6,14 +6,11 @@ use std::sync::Arc;
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
 // 通常ログ用
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 // 通知ログ用
 use logger;
 // 共通型
-use shared::{
-  TriviaHistory,
-  errors::{AppError, AppResult},
-};
+use shared::{TriviaHistory, errors::AppResult};
 // config
 use config::AppConfig;
 // LLMリクエスト構造体
