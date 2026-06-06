@@ -97,6 +97,10 @@ stats:
 reset:
 	docker compose down --rmi all --volumes --remove-orphans
 
+.PHONY: create-at
+## 詳細な起動時間を表示
+create-at:
+	docker compose ps --format "table {{.Name}}\t{{.CreatedAt}}"
 
 # ==================================
 ### Rust品質管理(Rust Quality Control)
