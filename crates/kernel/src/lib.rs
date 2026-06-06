@@ -4,7 +4,7 @@ crates/kernel/src/lib.rs
 use std::sync::Arc;
 
 // 時間型用
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 // 通常ログ用
 use tracing::{debug, error, info, warn};
 // 通知ログ用
@@ -13,6 +13,7 @@ use logger;
 use shared::{
   NewsFetcher, NewsSummary, TriviaHistory,
   errors::{AppError, AppResult},
+  utils,
 };
 // config
 use config::AppConfig;
@@ -74,7 +75,7 @@ impl Kernel {
       Ok(()) => {
         info!(
           "[{}] feed処理正常終了",
-          Utc::now().fixed_offset().format("%Y/%m/%d %H:%M:%S")
+          utils::now_jst().format("%Y/%m/%d %H:%M:%S")
         );
         Ok(())
       }
@@ -147,7 +148,7 @@ impl Kernel {
     // 終了処理(データ記録)
     // ----------------------
     // 終了時刻取得
-    let finish_at = Utc::now().fixed_offset();
+    let finish_at = utils::now_jst();
 
     // news_summaryに書き込む
     infra::write_news_summary(&shared::NewsSummary::Ready {
@@ -185,7 +186,7 @@ impl Kernel {
   async fn feed_fail_finish(&self, error_summary: String) -> AppResult<()> {
     info!("feed失敗時の後処理開始");
     // 終了時刻取得
-    let finish_at = chrono::Utc::now().fixed_offset();
+    let finish_at = utils::now_jst();
 
     // news_summaryに書き込む
     infra::write_news_summary(&shared::NewsSummary::Failed {
@@ -229,7 +230,7 @@ impl Kernel {
       Ok(()) => {
         info!(
           "[{}] send処理正常終了",
-          Utc::now().fixed_offset().format("%Y/%m/%d %H:%M:%S")
+          utils::now_jst().format("%Y/%m/%d %H:%M:%S")
         );
         Ok(())
       }
@@ -267,7 +268,7 @@ impl Kernel {
     // ----------------------
     // process_history の記録
     // ----------------------
-    let finish_at = Utc::now().fixed_offset();
+    let finish_at = utils::now_jst();
     infra::append_process_history(&shared::ProcessHistory {
       process: "send".to_string(),
       started_at: self.started_at,
@@ -297,7 +298,7 @@ impl Kernel {
 
         // runningなら started_at を確認してhang判定
         NewsSummary::Running { started_at } => {
-          let elapsed_minutes = (Utc::now().fixed_offset() - *started_at).num_minutes();
+          let elapsed_minutes = (utils::now_jst() - *started_at).num_minutes();
 
           if elapsed_minutes >= HANG_THRESHOLD_MINUTES {
             // hang扱い: ログを送信してエラーを返す
@@ -375,7 +376,7 @@ impl Kernel {
     info!("ニュース本文 Discord 送信完了");
 
     // news_summary を sent に更新
-    let sent_at = Utc::now().fixed_offset();
+    let sent_at = utils::now_jst();
     let (prepared_at, message_body) = match sender.get_send_item() {
       NewsSummary::Ready {
         prepared_at,

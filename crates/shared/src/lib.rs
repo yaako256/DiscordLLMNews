@@ -5,6 +5,7 @@ crates/shared/src/lib.rs
 pub mod constants;
 pub mod errors;
 mod models;
+pub mod utils;
 
 // 再エクスポート
 pub use models::{

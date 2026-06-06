@@ -2,6 +2,7 @@
 crates/logger/src/lib.rs
 グローバルで持つloggerの定義
 */
+mod time;
 // 標準ライブラリ
 // 共通のグローバル変数とするよう
 use std::sync::{Mutex, OnceLock};
