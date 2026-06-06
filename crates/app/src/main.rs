@@ -51,7 +51,9 @@ async fn main() -> AppResult<()> {
   // ----------------------
   let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
   // feed処理
-  knl.feed().await?;
+  //knl.feed().await?;
+
+  knl.send().await?;
 
   Ok(())
 }

@@ -13,6 +13,7 @@ tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
+tracing = { workspace = true }
 
 # 固有クレート
 # 一時ファイル名の一意なID生成用

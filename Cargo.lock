@@ -1046,6 +1046,7 @@ dependencies = [
  "serde_json",
  "shared",
  "tokio",
+ "tracing",
  "uuid",
 ]
 
@@ -1094,7 +1095,9 @@ dependencies = [
  "llm",
  "logger",
  "news_fetch",
+ "notifier",
  "shared",
+ "tokio",
  "tracing",
 ]
 
@@ -1309,6 +1312,18 @@ dependencies = [
 [[package]]
 name = "notifier"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "config 0.1.0",
+ "http_client",
+ "infra",
+ "logger",
+ "serde",
+ "serde_json",
+ "shared",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "nu-ansi-term"

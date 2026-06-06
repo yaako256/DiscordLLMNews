@@ -14,6 +14,7 @@ pub use models::{
   },
   news_fetch::{NewsFetcher, RSSItem},
   news_item::NewsItem,
+  notifier::Notifier,
   process_history::ProcessHistory,
   state::NewsSummary,
   trivia_history::TriviaHistory,

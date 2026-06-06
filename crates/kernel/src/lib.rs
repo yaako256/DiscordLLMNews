@@ -6,19 +6,27 @@ use std::sync::Arc;
 // 時間型用
 use chrono::{DateTime, FixedOffset, Utc};
 // 通常ログ用
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 // 通知ログ用
 use logger;
 // 共通型
-use shared::{TriviaHistory, errors::AppResult};
+use shared::{
+  NewsFetcher, NewsSummary, TriviaHistory,
+  errors::{AppError, AppResult},
+};
 // config
 use config::AppConfig;
 // LLMリクエスト構造体
 use llm::LLMClient;
 // news_fetch
 use news_fetch::LivedoorNewsFetcher;
-use shared::NewsFetcher;
+use notifier::DiscordSender;
+use shared::Notifier;
+use tokio;
 
+// 仮でここで定義
+const POLL_INTERVAL_SECS: u64 = 60000;
+const HANG_THRESHOLD_MINUTES: i64 = 1000000;
 pub struct Kernel {
   config: Arc<AppConfig>,
   started_at: DateTime<FixedOffset>,
@@ -205,16 +213,179 @@ impl Kernel {
 
   // sendの処理フロー(未実装)
   pub async fn send(&mut self) -> AppResult<()> {
-    println!("send");
-    // ファイルがなければStorage エラー
-    //storage::read_news_summary().await?;
-    // ...以降のsend処理
-    /*
-     // news_summaryの読み込み
-     let aa = infra::read_news_summary().await?;
-     println!("{:#?}", aa);
+    info!(
+      "[{}] send処理開始",
+      self.started_at.format("%Y/%m/%d %H:%M:%S")
+    );
 
-    */
+    // ----------------------
+    // 処理フロー
+    // ----------------------
+    // 処理フローを別関数に分けて、成功と失敗の処理を楽にする
+    let result = self.send_inner().await;
+
+    // 正常終了したか
+    match result {
+      Ok(()) => {
+        info!(
+          "[{}] send処理正常終了",
+          Utc::now().fixed_offset().format("%Y/%m/%d %H:%M:%S")
+        );
+        Ok(())
+      }
+      Err(e) => {
+        error!("send処理失敗: {e}");
+        logger::error("kernel", format!("send処理失敗: {e}"));
+        Err(e)
+      }
+    }
+  }
+
+  async fn send_inner(&mut self) -> AppResult<()> {
+    // ----------------------
+    // 事前準備: DiscordSenderのロード
+    // ----------------------
+    let mut sender = DiscordSender::try_load(Arc::clone(&self.config)).await?;
+
+    // ----------------------
+    // ステータス分岐
+    // ----------------------
+    // running状態のポーリングループも含め、最終的に実行可能なステータスになるまで待つ
+    self.wait_until_ready(&mut sender).await?;
+
+    // ----------------------
+    // 通常フロー: ready状態での送信
+    // ----------------------
+    self.execute_send(&sender).await?;
+
+    // ----------------------
+    // process_history の記録
+    // ----------------------
+    let finish_at = Utc::now().fixed_offset();
+    infra::append_process_history(&shared::ProcessHistory {
+      process: "send".to_string(),
+      started_at: self.started_at,
+      finished_at: finish_at,
+      success: true,
+      error_summary: None,
+    })
+    .await?;
+
+    Ok(())
+  }
+
+  /// news_summary が ready になるまでポーリングする。
+  ///
+  /// - `ready`   → そのまま返す（execute_sendへ進む）
+  /// - `running` → 30秒待ってリロード。hang判定を超えたらエラー
+  /// - `failed`  → ログだけ送信してエラーを返す
+  /// - `sent`    → 既送信のためエラーを返す（ログのみ通知）
+  async fn wait_until_ready(&self, sender: &mut DiscordSender) -> AppResult<()> {
+    loop {
+      match &sender.send_item {
+        // 通常フロー: readyならそのまま抜ける
+        NewsSummary::Ready { .. } => {
+          info!("news_summary: ready を確認、送信フローへ進む");
+          return Ok(());
+        }
+
+        // runningなら started_at を確認してhang判定
+        NewsSummary::Running { started_at } => {
+          let elapsed_minutes = (Utc::now().fixed_offset() - *started_at).num_minutes();
+
+          if elapsed_minutes >= HANG_THRESHOLD_MINUTES {
+            // hang扱い: ログを送信してエラーを返す
+            warn!("news_summary が {HANG_THRESHOLD_MINUTES}分以上 running のまま。hang と判定");
+            logger::error(
+              "send",
+              format!("feed hang 検知: {elapsed_minutes}分間 running のまま"),
+            );
+            // ログだけ送信を試みる（失敗は握りつぶし）
+            if let Err(e) = sender.send_logs().await {
+              error!("hang時のログ送信失敗(握りつぶし): {e}");
+            }
+            return Err(AppError::Storage(format!(
+              "feed プロセスが hang している可能性があります ({elapsed_minutes}分経過)"
+            )));
+          }
+
+          // hang判定未満: 30秒待ってリロード
+          info!(
+            "news_summary: running ({elapsed_minutes}分経過)、{}秒後に再確認",
+            POLL_INTERVAL_SECS
+          );
+          tokio::time::sleep(tokio::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
+          sender.reload().await?;
+        }
+
+        // failed: ログだけ送信してエラーを返す
+        NewsSummary::Failed { error_summary, .. } => {
+          warn!("news_summary: failed を検知 ({})", error_summary);
+          logger::error("send", format!("feed が失敗状態: {error_summary}"));
+          // ログだけ送信を試みる（失敗は握りつぶし）
+          if let Err(e) = sender.send_logs().await {
+            error!("failed時のログ送信失敗(握りつぶし): {e}");
+          }
+          return Err(AppError::Notifier(format!(
+            "feed が失敗状態のため send をスキップ: {error_summary}"
+          )));
+        }
+
+        // sent: 二重送信の可能性があるためエラーを返す
+        NewsSummary::Sent { sent_at, .. } => {
+          warn!("news_summary: sent を検知 (sent_at: {sent_at})");
+          logger::error("send", format!("既に送信済み (sent_at: {sent_at})"));
+          // ログだけ送信を試みる（失敗は握りつぶし）
+          if let Err(e) = sender.send_logs().await {
+            error!("sent時のログ送信失敗(握りつぶし): {e}");
+          }
+          return Err(AppError::Notifier(format!(
+            "既に送信済みのため send をスキップ (sent_at: {sent_at})"
+          )));
+        }
+      }
+    }
+  }
+
+  /// ready 状態の DiscordSender を使って Discord へ送信し、
+  /// news_summary を sent に更新する。
+  async fn execute_send(&self, sender: &DiscordSender) -> AppResult<()> {
+    // ニュース本文を送信
+    info!("ニュース本文 Discord 送信開始");
+    sender.send_summary().await?;
+    info!("ニュース本文 Discord 送信完了");
+
+    // news_summary を sent に更新
+    let sent_at = Utc::now().fixed_offset();
+    let (prepared_at, message_body) = match &sender.send_item {
+      NewsSummary::Ready {
+        prepared_at,
+        message_body,
+      } => (*prepared_at, message_body.clone()),
+      // wait_until_ready を通った後なので ready 以外は来ないが念のためエラー
+      _ => {
+        return Err(AppError::Notifier(
+          "execute_send: send_item が Ready でない（想定外）".to_string(),
+        ));
+      }
+    };
+
+    infra::write_news_summary(&NewsSummary::Sent {
+      sent_at,
+      prepared_at,
+      message_body,
+    })
+    .await?;
+    info!("news_summary を sent に更新");
+
+    // 通知ログを送信（エラーは握りつぶし）
+    info!("通知ログ Discord 送信開始");
+    if let Err(e) = sender.send_logs().await {
+      error!("通知ログ送信失敗(握りつぶし): {e}");
+    } else {
+      info!("通知ログ Discord 送信完了");
+    }
+
     Ok(())
   }
 }

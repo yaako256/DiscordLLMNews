@@ -5,6 +5,7 @@ dataファイルへのI/O処理
 // 標準ライブラリ
 use std::path::Path;
 
+use logger::NotificationLogEntry;
 use shared::ProcessHistory;
 
 // 外部クレート
@@ -14,7 +15,7 @@ use tokio::fs;
 use uuid::Uuid;
 // 時間型用
 use chrono::{DateTime, FixedOffset};
-
+use tracing::warn;
 // workspace内クレート
 use logger;
 use shared::constants::file::{
@@ -140,13 +141,35 @@ pub async fn read_notification_log() -> AppResult<Vec<NotificationLogEntry>> {
   }
 
   // ファイル読み込み
-  let bytes = fs::read(notification_path)
+  let content = fs::read_to_string(notification_path)
     .await
     .map_err(|e| AppError::Storage(format!("notification_log 読み込み失敗: {e}")))?;
 
-  // jsonをデシリアライズ
-  serde_json::from_slice(&bytes)
-    .map_err(|e| AppError::JsonParse(format!("notification_log パース失敗: {e}")))
+  // 空ファイルの場合は空Vecを返す
+  if content.trim().is_empty() {
+    return Ok(Vec::new());
+  }
+
+  // JSONLを1行ずつパース
+  // パースに失敗した行はスキップする（壊れた行で全体が失敗しないように）
+  let entries = content
+    .lines()
+    .filter(|line| !line.trim().is_empty())
+    .filter_map(|line| {
+      serde_json::from_str(line)
+        .map_err(|e| {
+          warn!("notification_log 行パース失敗(スキップ): {e} | 行: {line}");
+          logger::warn(
+            "read_notification_log",
+            format!("notification_log 行パース失敗(スキップ): {e} | 行: {line}"),
+          );
+          e
+        })
+        .ok()
+    })
+    .collect();
+
+  Ok(entries)
 }
 
 // ---------------------------------------------------------------

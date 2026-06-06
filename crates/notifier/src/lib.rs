@@ -1,3 +1,3 @@
-pub fn debug() {
-  println!("Hello, notifier!")
-}
+mod discord;
+
+pub use discord::send::DiscordSender;
