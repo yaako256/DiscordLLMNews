@@ -6,7 +6,7 @@ crates/logger/src/model.rs
 use serde::{Deserialize, Serialize};
 use serde_json;
 // 時間型用
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 
 // ----------------
 // ロガー本体
@@ -39,7 +39,7 @@ impl NotificationLogLogger {
   // ログをpushする共通型
   fn push(&mut self, level: LogLevel, stage: impl Into<String>, msg: impl Into<String>) {
     self.entries.push(NotificationLogEntry {
-      logged_at: Utc::now().with_timezone(&super::time::jst()),
+      logged_at: super::time::now_jst(),
       level,
       stage: stage.into(),
       message: msg.into(),
