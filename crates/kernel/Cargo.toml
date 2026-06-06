@@ -10,6 +10,8 @@ infra= { path = "../infra" }
 logger = { path = "../logger" }
 news_fetch = { path = "../news_fetch" }
 llm = { path = "../llm" }
+notifier = { path = "../notifier" }
 
 tracing = { workspace = true }
+tokio = { workspace = true }
 chrono = { workspace = true }

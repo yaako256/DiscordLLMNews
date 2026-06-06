@@ -8,6 +8,7 @@ use std::sync::{Mutex, OnceLock};
 
 // ロガー構造体
 mod model;
+pub use model::NotificationLogEntry;
 use model::NotificationLogLogger;
 
 static LOGGER: OnceLock<Mutex<NotificationLogLogger>> = OnceLock::new();
@@ -43,9 +44,10 @@ pub fn to_jsonl_string() -> String {
     .unwrap_or_default()
 }
 
-pub fn to_chunks(limit: usize) -> Vec<String> {
+/// 蓄積したエントリを整形済み文字列として返す（Discord通知用）
+pub fn to_formatted_string() -> String {
   LOGGER
     .get()
-    .map(|l| l.lock().unwrap().to_chunks(limit))
+    .map(|l| l.lock().unwrap().to_formatted_string())
     .unwrap_or_default()
 }

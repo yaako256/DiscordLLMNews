@@ -9,7 +9,7 @@ use shared::errors::{AppError, AppResult};
 // トレイト型用
 use serde::de::DeserializeOwned;
 // ログ用
-use tracing::info;
+//use tracing::info;
 // geminiの内部通信用構造体
 use super::gemini;
 
