@@ -282,7 +282,7 @@ impl Kernel {
   /// - `sent`    → 既送信のためエラーを返す（ログのみ通知）
   async fn wait_until_ready(&self, sender: &mut DiscordSender) -> AppResult<()> {
     loop {
-      match &sender.send_item {
+      match sender.get_send_item() {
         // 通常フロー: readyならそのまま抜ける
         NewsSummary::Ready { .. } => {
           info!("news_summary: ready を確認、送信フローへ進む");
@@ -339,9 +339,7 @@ impl Kernel {
           if let Err(e) = sender.send_logs().await {
             error!("sent時のログ送信失敗(握りつぶし): {e}");
           }
-          return Err(AppError::Notifier(format!(
-            "既に送信済みのため send をスキップ (sent_at: {sent_at})"
-          )));
+          return Ok(());
         }
       }
     }
@@ -357,16 +355,16 @@ impl Kernel {
 
     // news_summary を sent に更新
     let sent_at = Utc::now().fixed_offset();
-    let (prepared_at, message_body) = match &sender.send_item {
+    let (prepared_at, message_body) = match sender.get_send_item() {
       NewsSummary::Ready {
         prepared_at,
         message_body,
       } => (*prepared_at, message_body.clone()),
       // wait_until_ready を通った後なので ready 以外は来ないが念のためエラー
       _ => {
-        return Err(AppError::Notifier(
-          "execute_send: send_item が Ready でない（想定外）".to_string(),
-        ));
+        logger::error("send", "送信済の内容が送信対象に選ばれました");
+        info!("execute_send: send_item が Ready でない（想定外）");
+        return Ok(());
       }
     };
 

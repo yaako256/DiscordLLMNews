@@ -15,7 +15,7 @@ const DISCORD_MAX_CHARS: usize = 2000;
 
 pub struct DiscordSender {
   config: Arc<AppConfig>,
-  pub send_item: NewsSummary,
+  send_item: NewsSummary,
   log_items: Vec<NotificationLogEntry>,
 }
 impl DiscordSender {
@@ -41,10 +41,16 @@ impl DiscordSender {
     Ok(())
   }
 
+  /// send_itemのゲッター関数
+  pub fn get_send_item(&self) -> &NewsSummary {
+    &self.send_item
+  }
+
   /// 指定された全URLに同じテキストを送信する
   async fn post_to_webhooks(&self, urls: &[String], content: &str) -> AppResult<()> {
     for url in urls {
-      let body = json!({ "content": content });
+      // コードブロックで囲む
+      let body = json!({ "content":  format!("```\n{content}\n```") });
       let resp = http_client::http()
         .post(url)
         .json(&body)
