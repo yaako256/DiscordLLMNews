@@ -124,9 +124,9 @@ pub async fn write_notification_log() -> AppResult<()> {
   // 書き込み
   atomic_write(&notification_path, json.as_bytes()).await
 }
-/*
+
 /// notification_log.jsonl を読み込む(send処理で使用)
-pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
+pub async fn read_notification_log() -> AppResult<Vec<NotificationLogEntry>> {
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // notification_log.jsonlのパスを作成
@@ -148,7 +148,7 @@ pub async fn read_notification_log() -> AppResult<NotificationLogLogger> {
   serde_json::from_slice(&bytes)
     .map_err(|e| AppError::JsonParse(format!("notification_log パース失敗: {e}")))
 }
-*/
+
 // ---------------------------------------------------------------
 // trivia_history.jsonl
 // ---------------------------------------------------------------
