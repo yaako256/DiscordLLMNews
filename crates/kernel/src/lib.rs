@@ -253,6 +253,12 @@ impl Kernel {
     // running状態のポーリングループも含め、最終的に実行可能なステータスになるまで待つ
     self.wait_until_ready(&mut sender).await?;
 
+    // wait後もreadyでなければexecute_sendをスキップ
+    if !matches!(sender.get_send_item(), NewsSummary::Ready { .. }) {
+      info!("send_inner: ready でないためexecute_sendをスキップ");
+      return Ok(());
+    }
+
     // ----------------------
     // 通常フロー: ready状態での送信
     // ----------------------
@@ -334,7 +340,13 @@ impl Kernel {
         // sent: 二重送信の可能性があるためエラーを返す
         NewsSummary::Sent { sent_at, .. } => {
           warn!("news_summary: sent を検知 (sent_at: {sent_at})");
-          logger::error("send", format!("既に送信済み (sent_at: {sent_at})"));
+          logger::error(
+            "send",
+            format!(
+              "既に送信済み (sent_at: {})",
+              sent_at.format("%Y/%m/%d %H:%M:%S")
+            ),
+          );
           // ログだけ送信を試みる（失敗は握りつぶし）
           if let Err(e) = sender.send_logs().await {
             error!("sent時のログ送信失敗(握りつぶし): {e}");
@@ -350,7 +362,16 @@ impl Kernel {
   async fn execute_send(&self, sender: &DiscordSender) -> AppResult<()> {
     // ニュース本文を送信
     info!("ニュース本文 Discord 送信開始");
-    sender.send_summary().await?;
+    // 本文送信失敗時はloggerにエラーを追記してからログ通知する
+    if let Err(e) = sender.send_summary().await {
+      error!("ニュース本文送信失敗: {e}");
+      logger::error("send", format!("ニュース本文送信失敗: {e}"));
+      // feedのログ(log_items) + sendのエラー(グローバルlogger) を結合して送信
+      if let Err(le) = sender.send_logs().await {
+        error!("エラー時ログ送信失敗(握りつぶし): {le}");
+      }
+      return Err(e);
+    }
     info!("ニュース本文 Discord 送信完了");
 
     // news_summary を sent に更新
@@ -360,7 +381,6 @@ impl Kernel {
         prepared_at,
         message_body,
       } => (*prepared_at, message_body.clone()),
-      // wait_until_ready を通った後なので ready 以外は来ないが念のためエラー
       _ => {
         logger::error("send", "送信済の内容が送信対象に選ばれました");
         info!("execute_send: send_item が Ready でない（想定外）");
@@ -368,6 +388,7 @@ impl Kernel {
       }
     };
 
+    // news_summaryのstatusをsentにする
     infra::write_news_summary(&NewsSummary::Sent {
       sent_at,
       prepared_at,

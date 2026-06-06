@@ -50,7 +50,7 @@ impl DiscordSender {
   async fn post_to_webhooks(&self, urls: &[String], content: &str) -> AppResult<()> {
     for url in urls {
       // コードブロックで囲む
-      let body = json!({ "content":  format!("```\n{content}\n```") });
+      let body = json!({ "content": content });
       let resp = http_client::http()
         .post(url)
         .json(&body)
@@ -60,9 +60,8 @@ impl DiscordSender {
 
       if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
         return Err(AppError::Notifier(format!(
-          "Discord Webhook エラーレスポンス: status={status}, body={text}"
+          "Discord Webhook エラーレスポンス: status={status}"
         )));
       }
     }
@@ -94,29 +93,46 @@ impl Notifier for DiscordSender {
 
     Ok(())
   }
+
   /// notification_log を logs_webhooks の全URLへ送信する
   /// ログが空の場合は送信しない
+  /// notification_log(feedのログ) と グローバルlogger(sendのログ) を結合して送信する
   async fn send_logs(&self) -> AppResult<()> {
-    if self.log_items.is_empty() {
-      info!("notification_log が空のため送信スキップ");
-      return Ok(());
-    }
+    // feedのログ(ファイルから読んだもの)
+    let file_part = if self.log_items.is_empty() {
+      String::new()
+    } else {
+      format_log_entries(&self.log_items)
+    };
 
-    // logger クレートの to_chunks でDISCORD_MAX_CHARS単位に分割する
-    // NOTE: to_chunksはNotificationLogLoggerのメソッドだが、
-    //       ここでは読み込んだVec<NotificationLogEntry>を直接整形する
-    let content = format_log_entries(&self.log_items);
+    // sendのログ(グローバルloggerから取得)
+    let global_part = logger::to_formatted_string();
 
-    // DISCORD_MAX_CHARSを超える場合は警告を出してトリミング（今回は分割省略）
-    let content = if content.len() > DISCORD_MAX_CHARS {
+    // 結合（どちらかが空でも自然につながる）
+    let content = match (file_part.is_empty(), global_part.trim().is_empty()) {
+      (true, true) => {
+        info!("送信するログが空のためスキップ");
+        return Ok(());
+      }
+      (true, false) => global_part,
+      (false, true) => file_part,
+      (false, false) => format!("{file_part}\n{global_part}"),
+    };
+
+    // コードブロック分(8文字)を差し引いた上限でトリミング
+    let max_inner = DISCORD_MAX_CHARS.saturating_sub(8);
+    let content = if content.len() > max_inner {
       warn!(
-        "notification_log が {DISCORD_MAX_CHARS} 文字を超えているためトリミングします ({}文字)",
+        "ログが {max_inner} 文字を超えているためトリミングします ({}文字)",
         content.len()
       );
-      content.chars().take(DISCORD_MAX_CHARS).collect::<String>()
+      content.chars().take(max_inner).collect::<String>()
     } else {
       content
     };
+
+    // send_logs: 呼び出し前にコードブロックで囲む
+    let content = format!("```\n{content}\n```");
 
     info!("通知ログ送信開始");
     self
@@ -128,14 +144,11 @@ impl Notifier for DiscordSender {
   }
 }
 
-/// Vec<NotificationLogEntry> を Discord 用の文字列に整形する
+/// Vec<NotificationLogEntry> を整形済み文字列に変換する
 fn format_log_entries(entries: &[NotificationLogEntry]) -> String {
-  // NotificationLogEntryのフィールドはprivateなため、
-  // Debug出力を使わずserde_json経由でJSONL文字列として整形する
-  // （表示形式はto_formatted_stringに合わせたいが、privateのため代替）
   entries
     .iter()
-    .filter_map(|e| serde_json::to_string(e).ok())
+    .map(|e| e.to_formatted_string())
     .collect::<Vec<_>>()
-    .join("\n")
+    .join("")
 }

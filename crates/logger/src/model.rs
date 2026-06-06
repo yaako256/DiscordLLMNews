@@ -58,29 +58,14 @@ impl NotificationLogLogger {
       + "\n"
   }
 
-  // 蓄積したエントリを Vec<String> 形式で書きだす
-  pub fn to_chunks(&self, limit: usize) -> Vec<String> {
-    let mut chunks = Vec::new();
-    let mut current = String::new();
-
-    for entry in &self.entries {
-      // 文字列生成
-      let formatted = entry.to_formatted_string();
-
-      // 制限文字に収まらない場合はプッシュしてリセット
-      if current.len() + formatted.len() > limit {
-        chunks.push(current);
-        current = String::new();
-      }
-      current.push_str(&formatted);
-    }
-
-    // 最後に残った文字列があれば追加
-    if !current.is_empty() {
-      chunks.push(current);
-    }
-
-    chunks
+  // 蓄積したエントリを整形済み文字列として書きだす
+  pub fn to_formatted_string(&self) -> String {
+    self
+      .entries
+      .iter()
+      .map(|e| e.to_formatted_string())
+      .collect::<Vec<_>>()
+      .join("")
   }
 }
 
@@ -123,7 +108,7 @@ pub struct NotificationLogEntry {
 }
 impl NotificationLogEntry {
   // 文字列として整形
-  fn to_formatted_string(&self) -> String {
+  pub fn to_formatted_string(&self) -> String {
     format!(
       "[{}] {:<7}[{}] {}\n",
       self.logged_at.format("%Y/%m/%d %H:%M:%S"),
