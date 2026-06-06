@@ -2,12 +2,17 @@
 crates/llm/src/lib.rs
 LLMへのリクエストを定義
 */
-
-use config::AppConfig;
+// 標準ライブラリ
 use std::sync::Arc;
+
+// 外部クレート
+// 非同期処理用
 use tokio::time::{Duration, sleep};
+// 通常ログ
 use tracing::{error, info};
 
+// workspace内クレート
+use config::AppConfig;
 use logger;
 use shared::{
   NewsItem, NewsItemLite, SelectByBodyRequest, SelectByTitleRequest, SelectResponse,
@@ -63,7 +68,7 @@ impl LLMClient {
     let summarize_prompt = config
       .prompts
       .summarize
-      //  .replace("{TRIVIA_HISTORY}", &trivia_history_json);
+      //.replace("{TRIVIA_HISTORY}", &trivia_history_json);
       .replace("{DATE}", "2026年6月3日");
 
     Ok(Self {
@@ -84,7 +89,7 @@ impl LLMClient {
   // ---------------------------------------------------------------
   /// 1回目: タイトルのみで選出
   pub async fn request_select_title(&mut self, items: &[NewsItem]) -> AppResult<Vec<usize>> {
-    info!("[llm request] 1回目開始!");
+    info!("LLM 1回目リクエスト開始 件数:{}", items.len());
     let request = SelectByTitleRequest {
       items: items.iter().map(|item| NewsItemLite::from(item)).collect(),
     };
@@ -92,12 +97,13 @@ impl LLMClient {
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.select_title_prompt.clone();
     let res: SelectResponse = self.request_with_retry(&prompt, &items_json).await?;
+    info!("LLM 1回目リクエスト完了");
     Ok(res.selected_ids)
   }
 
   /// 2回目: 本文も含めて選出
   pub async fn request_select_body(&mut self, items: &[NewsItem]) -> AppResult<Vec<usize>> {
-    info!("[llm request] 2回目開始!");
+    info!("LLM 2回目リクエスト開始 件数:{}", items.len());
     let request = SelectByBodyRequest {
       items: items.to_vec(),
     };
@@ -105,12 +111,13 @@ impl LLMClient {
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.select_body_prompt.clone();
     let res: SelectResponse = self.request_with_retry(&prompt, &items_json).await?;
+    info!("LLM 2回目リクエスト完了");
     Ok(res.selected_ids)
   }
 
   /// 3回目: 要約・整形
   pub async fn request_summarize(&mut self, items: &[NewsItem]) -> AppResult<String> {
-    info!("[llm request] 3回目開始!");
+    info!("LLM 3回目リクエスト開始 件数:{}", items.len());
     let request = SummarizeRequest {
       items: items.to_vec(),
     };
@@ -118,6 +125,7 @@ impl LLMClient {
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.summarize_prompt.clone();
     let res: SummaryResponse = self.request_with_retry(&prompt, &items_json).await?;
+    info!("LLM 3回目リクエスト完了");
     Ok(res.contents)
   }
 

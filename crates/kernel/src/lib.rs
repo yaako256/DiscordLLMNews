@@ -108,9 +108,12 @@ impl Kernel {
     let news_items = news_fetcher.get_news_items();
     info!("LLM 1回目リクエスト開始 件数:{}", news_items.len());
     let filter: Vec<usize> = llm_client.request_select_title(&news_items).await?;
+    info!("LLM 1回目リクエスト完了");
     debug!("LLM 1回目出力: {:?}", filter);
     // IDでフィルタをかけて選出対象だけ抽出
+    info!("IDフィルタ開始");
     news_fetcher.extract_news_items(filter)?;
+    info!("IDフィルタ完了");
 
     // ニュース本文の取得
     info!("ニュース本文取得開始");
@@ -121,14 +124,18 @@ impl Kernel {
     let news_items = news_fetcher.get_news_items();
     info!("LLM 2回目リクエスト開始 件数:{}", news_items.len());
     let filter: Vec<usize> = llm_client.request_select_body(&news_items).await?;
+    info!("LLM 2回目リクエスト完了");
     debug!("LLM 2回目出力: {:?}", filter);
     // IDでフィルタをかけて選出対象だけ抽出
+    info!("IDフィルタ開始");
     news_fetcher.extract_news_items(filter)?;
+    info!("IDフィルタ完了");
 
     // 3回目LLMリクエスト(要約・整形)
     let news_items = news_fetcher.get_news_items();
     info!("LLM 3回目リクエスト開始 件数:{}", news_items.len());
     let res_text: String = llm_client.request_summarize(&news_items).await?;
+    info!("LLM 3回目リクエスト完了");
     debug!("LLM 3回目出力: {}", res_text);
 
     // ----------------------

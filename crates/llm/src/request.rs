@@ -36,8 +36,8 @@ pub async fn send_request<T: DeserializeOwned>(
     }],
   };
 
-  info!("リクエストボディ");
-  info!("{:#?}", request_body);
+  //info!("リクエストボディ");
+  //info!("{:#?}", request_body);
 
   // リクエスト送信
   let response = http_client::llm()
