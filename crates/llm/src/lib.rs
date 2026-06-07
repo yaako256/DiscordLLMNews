@@ -128,7 +128,6 @@ impl LLMClient {
     let items_json = serde_json::to_string(&request)
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.summarize_prompt.clone();
-    info!("LLM 3回目リクエストのプロンプト\n{}", &prompt);
     let res: SummaryResponse = self.request_with_retry(&prompt, &items_json).await?;
     info!("LLM 3回目リクエスト完了");
 
@@ -146,7 +145,7 @@ impl LLMClient {
   ) -> AppResult<T> {
     // {DATA_JSON}をここでreplace
     let prompt = prompt.replace("{DATA_JSON}", items_json);
-
+    //info!("LLM リクエストのプロンプト\n{}", &prompt);
     for attempt in 0..=self.max_retry {
       // 借用競合を避けるためStringにクローン
       let api_key = self.current_api_key();

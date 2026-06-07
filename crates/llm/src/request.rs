@@ -80,11 +80,15 @@ pub async fn send_request<T: DeserializeOwned>(
     )));
   }
 
-  // GeminiレスポンスのJSONパース
-  let gemini_res: gemini::Response = response
-    .json()
+  // body取得
+  let body = response
+    .text()
     .await
-    .map_err(|e| AppError::LLMRequest(format!("Geminiレスポンスパース失敗: {e}")))?;
+    .map_err(|e| AppError::LLMRequest(format!("body取得失敗: {e}")))?;
+
+  // GeminiレスポンスのJSONパース
+  let gemini_res: gemini::Response = serde_json::from_str(&body)
+    .map_err(|e| AppError::LLMRequest(format!("Geminiレスポンスパース失敗: {e}\nbody:{body}")))?;
 
   // candidatesからテキスト抽出
   let text = gemini_res
