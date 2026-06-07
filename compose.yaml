@@ -13,6 +13,8 @@ services:
       - target_cache:/app/target
       # 開発用configをvolume化(configを変更後のコンテナrebuildが必要なくなる)
       - ./.config/dev:/app/.config
+      # dataもvolume化
+      - ./data/dev:/app/data
     # 作業用ディレクトリの指定
     working_dir: /app
     # 仮想端末を割り当てる？
@@ -31,13 +33,16 @@ services:
     volumes:
       # 本番用configをvolume化(configを変更後のコンテナrebuildが必要なくなる)
       - ./.config/prod:/app/.config
+      # dataもvolume化
+      - ./data/prod:/app/data
     # 以下本番用制限設定関連
     # リソース制限の設定（Compose V3仕様）
     deploy:
       resources:
         limits:
-          cpus: '1.0' # CPUを最大1コア分に制限（Playwright用にある程度確保）
-          memory: 1024M # メモリを最大1GBに制限（ブラウザが動くため少し余裕を持たせる）
+          # Rust+HTTPくらいならこれでいい
+          cpus: '0.5' # CPUの最大コア数を制限
+          memory: 128M # メモリの最大値を制限
     # ログローテーションの設定（ディスク満杯防止）
     # Dockerのログだけが対象(自前jsonlなどは対象外)
     logging:

@@ -11,8 +11,8 @@ implementation_plan.md
 prompt_memo.md
 prompt_out_memo.md
 
-# 記録用フォルダ除外
-data/*
+# 記録用フォルダ除外(data/dev/*とdata/prod/*)
+data/*/*
 
 # Rustのビルド成果物は巨大になるため必須
 target
