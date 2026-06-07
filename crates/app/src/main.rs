@@ -47,11 +47,41 @@ async fn main() -> AppResult<()> {
   // ----------------------
   // 処理フロー
   // ----------------------
-  let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
-  // feed処理
-  //knl.feed().await?;
 
-  knl.send().await?;
+  // ----------------------
+  // 実行処理
+  // ----------------------
+  // コマンドの引数をパース
+  // args[0] はプログラム名なのでスキップ
+  let args: Vec<String> = std::env::args().skip(1).collect();
 
-  Ok(())
+  // "--" が含まれる場合はその後ろを、ない場合はそのまま使う
+  // - 開発時: cargo run -p app -- feed → Cargoが"--"を消費 → ["feed"]
+  // - 本番時: ./aaa -- feed            → プログラムに"--"が届く → ["--", "feed"]
+  let command_args: Vec<&str> = {
+    match args.iter().position(|a| a == "--") {
+      Some(i) => args[i + 1..].iter().map(|s| s.as_ref()).collect(),
+      None => args.iter().map(|s| s.as_ref()).collect(),
+    }
+  };
+
+  // 引数にあった関数を実行
+  match command_args.as_slice() {
+    ["feed"] => {
+      // kernelをインスタンス
+      let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
+      // feed処理
+      knl.feed().await
+    }
+    ["send"] => {
+      // kernelをインスタンス
+      let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
+      // send処理
+      knl.send().await
+    }
+    [] => Err(AppError::InvalidCommand(
+      "コマンドを指定してください".into(),
+    )),
+    _ => Err(AppError::InvalidCommand("不明なコマンド".into())),
+  }
 }
