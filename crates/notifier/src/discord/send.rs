@@ -1,3 +1,7 @@
+/*
+crates/notifier/src/discord/send.rs
+*/
+
 use async_trait::async_trait;
 use config::AppConfig;
 use infra;
@@ -6,6 +10,7 @@ use serde_json::json;
 use shared::{
   NewsSummary, Notifier,
   errors::{AppError, AppResult},
+  utils,
 };
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -19,6 +24,17 @@ pub struct DiscordSender {
   log_items: Vec<NotificationLogEntry>,
 }
 impl DiscordSender {
+  /// configだけでインスタンスを生成する（ログ送信のみ可能な最小構成）
+  pub fn new(config: Arc<AppConfig>) -> Self {
+    Self {
+      config,
+      send_item: NewsSummary::Running {
+        started_at: utils::now_jst(),
+      },
+      log_items: Vec::new(),
+    }
+  }
+
   /// news_summary.json と notification_log.jsonl を読み込んでインスタンスを生成する
   pub async fn try_load(config: Arc<AppConfig>) -> AppResult<Self> {
     // news_summary.jsonのロード

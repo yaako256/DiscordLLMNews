@@ -246,7 +246,26 @@ impl Kernel {
     // ----------------------
     // 事前準備: DiscordSenderのロード
     // ----------------------
-    let mut sender = DiscordSender::try_load(Arc::clone(&self.config)).await?;
+    let mut sender = match DiscordSender::try_load(Arc::clone(&self.config)).await {
+      Ok(s) => s,
+      Err(e) => {
+        // ファイル未存在: ログ通知してOk終了
+        warn!("DiscordSender ロード失敗: {e}");
+        logger::error("send", format!("DiscordSender ロード失敗: {e}"));
+
+        // ログだけ送信を試みる（失敗は握りつぶし）
+        // configだけの中身のないインスタンスを作成
+        let sd = DiscordSender::new(Arc::clone(&self.config));
+        // 通知ログを送信
+        info!("通知ログ Discord 送信開始");
+        if let Err(le) = sd.send_logs().await {
+          error!("通知ログ送信失敗(握りつぶし): {le}");
+        } else {
+          info!("通知ログ Discord 送信完了");
+        }
+        return Ok(());
+      }
+    };
 
     // ----------------------
     // ステータス分岐
