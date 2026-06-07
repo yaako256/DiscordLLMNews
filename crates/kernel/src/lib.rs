@@ -11,7 +11,7 @@ use tracing::{debug, error, info, warn};
 use logger;
 // 共通型
 use shared::{
-  NewsFetcher, NewsSummary, TriviaHistory,
+  NewsFetcher, NewsSummary, SummaryResponse, TriviaHistory,
   errors::{AppError, AppResult},
   utils,
 };
@@ -147,9 +147,12 @@ impl Kernel {
     // 3回目LLMリクエスト(要約・整形)
     let news_items = news_fetcher.get_news_items();
     info!("LLM 3回目リクエスト開始 件数:{}", news_items.len());
-    let res_text: String = llm_client.request_summarize(&news_items).await?;
+    let res: SummaryResponse = llm_client.request_summarize(&news_items).await?;
     info!("LLM 3回目リクエスト完了");
-    debug!("LLM 3回目出力: {}", res_text);
+    debug!("LLM 3回目出力: {:#?}", res);
+
+    // 要約文章を整形して1つの文にする(未実装)
+    let res_text = "".to_string();
 
     // ----------------------
     // 終了処理(データ記録)
