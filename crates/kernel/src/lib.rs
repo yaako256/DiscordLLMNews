@@ -99,8 +99,15 @@ impl Kernel {
     // ----------------------
     // NewsFetcherのインスタンス
     let mut news_fetcher = LivedoorNewsFetcher::new(Arc::clone(&self.config));
-    // LLMリクエストのインスタンス
-    let mut llm_client: LLMClient = LLMClient::new(Arc::clone(&self.config)).await?;
+    // LLM Clientのインスタンス
+    let mut llm_client: LLMClient = LLMClient::new(
+      Arc::clone(&self.config),
+      &self
+        .started_at
+        .format("%Y年%-m月%-d日 %-H時%-M分")
+        .to_string(),
+    )
+    .await?;
 
     // ----------------------
     // メイン処理

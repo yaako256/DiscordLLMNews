@@ -46,7 +46,7 @@ pub struct LLMClient {
 }
 
 impl LLMClient {
-  pub async fn new(config: Arc<AppConfig>) -> AppResult<Self> {
+  pub async fn new(config: Arc<AppConfig>, date_time: &str) -> AppResult<Self> {
     // trivia_historyを取得してJSON文字列に変換
     //let trivia_history = infra::read_trivia_history(10).await?;
     //let trivia_history_json = serde_json::to_string(&trivia_history)
@@ -69,7 +69,7 @@ impl LLMClient {
       .prompts
       .summarize
       //.replace("{TRIVIA_HISTORY}", &trivia_history_json);
-      .replace("{DATE}", "2026年6月3日");
+      .replace("{DATE_TIME}", date_time);
 
     Ok(Self {
       select_title_prompt,
