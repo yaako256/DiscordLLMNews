@@ -21,6 +21,14 @@ services:
     tty: true
     command: bash -c "cargo watch -x check"
 
+    # ログローテーションの設定（ディスク満杯防止）
+    # Dockerのログだけが対象(自前jsonlなどは対象外)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" # 1つのログファイルは最大10MB
+        max-file: "3" # 過去ログは最大3ファイルまで保持（計30MB）
+
   # 本番用コンテナ
   # Rustバイナリだけ入れる。
   # このコンテナを常駐させ、cronに定期実行させる。

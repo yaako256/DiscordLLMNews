@@ -4,14 +4,14 @@ crates/kernel/src/lib.rs
 use std::sync::Arc;
 
 // 時間型用
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Datelike, FixedOffset, Weekday};
 // 通常ログ用
 use tracing::{debug, error, info, warn};
 // 通知ログ用
 use logger;
 // 共通型
 use shared::{
-  NewsFetcher, NewsSummary, TriviaHistory,
+  NewsFetcher, NewsSummary, SummaryResponse, TriviaHistory,
   errors::{AppError, AppResult},
   utils,
 };
@@ -99,8 +99,12 @@ impl Kernel {
     // ----------------------
     // NewsFetcherのインスタンス
     let mut news_fetcher = LivedoorNewsFetcher::new(Arc::clone(&self.config));
-    // LLMリクエストのインスタンス
-    let mut llm_client: LLMClient = LLMClient::new(Arc::clone(&self.config)).await?;
+    // LLM Clientのインスタンス
+    let mut llm_client: LLMClient = LLMClient::new(
+      Arc::clone(&self.config),
+      &self.format_japanese_date(&self.started_at),
+    )
+    .await?;
 
     // ----------------------
     // メイン処理
@@ -140,10 +144,13 @@ impl Kernel {
     // 3回目LLMリクエスト(要約・整形)
     let news_items = news_fetcher.get_news_items();
     info!("LLM 3回目リクエスト開始 件数:{}", news_items.len());
-    let res_text: String = llm_client.request_summarize(&news_items).await?;
+    let res: SummaryResponse = llm_client.request_summarize(&news_items).await?;
     info!("LLM 3回目リクエスト完了");
-    debug!("LLM 3回目出力: {}", res_text);
+    debug!("LLM 3回目出力: {:#?}", res);
 
+    // 要約文章を整形して1つの文にする(未実装)
+    //let res_text = "".to_string();
+    let res_text = self.build_message(&res, &self.format_japanese_date(&self.started_at));
     // ----------------------
     // 終了処理(データ記録)
     // ----------------------
@@ -159,9 +166,9 @@ impl Kernel {
 
     // トリビアを履歴に保存
     infra::append_trivia_history(&TriviaHistory {
-      // yyyy/mm/dd hh:mm の形式に変換
-      time: finish_at.format("%Y/%m/%d %H:%M").to_string(),
-      trivia: "後でここに豆知識・雑学を入れる!!!".to_string(),
+      // yyyymmddの形式に変換
+      time: finish_at.format("%Y%m%d").to_string(),
+      trivia: res.trivia,
     })
     .await?;
 
@@ -179,6 +186,35 @@ impl Kernel {
     infra::write_notification_log().await?;
 
     Ok(())
+  }
+
+  // 曜日を日本用にした日付を生成
+  fn format_japanese_date(&self, dt: &DateTime<FixedOffset>) -> String {
+    let weekday = match dt.weekday() {
+      Weekday::Mon => "月",
+      Weekday::Tue => "火",
+      Weekday::Wed => "水",
+      Weekday::Thu => "木",
+      Weekday::Fri => "金",
+      Weekday::Sat => "土",
+      Weekday::Sun => "日",
+    };
+
+    format!("{}({})", dt.format("%Y年%-m月%-d日"), weekday)
+  }
+
+  // SummaryResponseをメッセージ用に組み立てる
+  fn build_message(&self, summary: &SummaryResponse, date_str: &str) -> String {
+    let mut msg = format!("# 📅{}のニュースまとめ\n\n", date_str);
+    for section in &summary.news_sections {
+      msg.push_str(&format!("## {}\n", section.category));
+      for article in &section.articles {
+        msg.push_str(&format!("### {}\n{}\n\n", article.title, article.body));
+      }
+    }
+    msg.push_str(&format!("## 💡本日の豆知識！\n{}\n\n", summary.trivia));
+    msg.push_str(&format!("## 🍀締めの一言\n{}\n", summary.closing_message));
+    msg
   }
 
   /// feed失敗時の後処理

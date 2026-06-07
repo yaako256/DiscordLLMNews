@@ -70,7 +70,21 @@ pub struct SummarizeRequest {
 
 /// レスポンス型
 /// 要約・整形後の文字列を戻り値とする
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SummaryResponse {
-  pub contents: String,
+  pub news_sections: Vec<NewsSection>,
+  pub trivia: String,          // 豆知識本文のみ
+  pub closing_message: String, // 締めの一言本文のみ
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewsSection {
+  pub category: String,
+  pub articles: Vec<ArticleSummary>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ArticleSummary {
+  pub title: String,
+  pub body: String,
 }

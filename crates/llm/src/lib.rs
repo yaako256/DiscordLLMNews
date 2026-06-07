@@ -16,7 +16,7 @@ use config::AppConfig;
 use logger;
 use shared::{
   NewsItem, NewsItemLite, SelectByBodyRequest, SelectByTitleRequest, SelectResponse,
-  SummarizeRequest, SummaryResponse,
+  SummarizeRequest, SummaryResponse, TriviaHistory,
   errors::{AppError, AppResult},
 };
 
@@ -46,11 +46,15 @@ pub struct LLMClient {
 }
 
 impl LLMClient {
-  pub async fn new(config: Arc<AppConfig>) -> AppResult<Self> {
+  pub async fn new(config: Arc<AppConfig>, date_time: &str) -> AppResult<Self> {
     // trivia_historyを取得してJSON文字列に変換
-    //let trivia_history = infra::read_trivia_history(10).await?;
-    //let trivia_history_json = serde_json::to_string(&trivia_history)
-    //  .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
+    let trivia_history: Vec<TriviaHistory> = infra::read_trivia_history(10).await?;
+    // yyyymmdd:本文 という感じでコロンと改行で繋ぐ
+    let trivia_history_fmt = trivia_history
+      .iter()
+      .map(|h| format!("{}:{}", h.time, h.trivia))
+      .collect::<Vec<_>>()
+      .join("\n");
 
     // new時点でreplace可能なプレースホルダーをすべて変換
     // {DATA_JSON}はリクエスト時に埋め込むためここでは触らない
@@ -68,8 +72,8 @@ impl LLMClient {
     let summarize_prompt = config
       .prompts
       .summarize
-      //.replace("{TRIVIA_HISTORY}", &trivia_history_json);
-      .replace("{DATE}", "2026年6月3日");
+      .replace("{TRIVIA_HISTORY}", &trivia_history_fmt)
+      .replace("{DATE_TIME}", date_time);
 
     Ok(Self {
       select_title_prompt,
@@ -116,7 +120,7 @@ impl LLMClient {
   }
 
   /// 3回目: 要約・整形
-  pub async fn request_summarize(&mut self, items: &[NewsItem]) -> AppResult<String> {
+  pub async fn request_summarize(&mut self, items: &[NewsItem]) -> AppResult<SummaryResponse> {
     info!("LLM 3回目リクエスト開始 件数:{}", items.len());
     let request = SummarizeRequest {
       items: items.to_vec(),
@@ -124,9 +128,11 @@ impl LLMClient {
     let items_json = serde_json::to_string(&request)
       .map_err(|e| AppError::LLMRequest(format!("リクエストシリアライズ失敗: {e}")))?;
     let prompt = self.summarize_prompt.clone();
+    info!("LLM 3回目リクエストのプロンプト\n{}", &prompt);
     let res: SummaryResponse = self.request_with_retry(&prompt, &items_json).await?;
     info!("LLM 3回目リクエスト完了");
-    Ok(res.contents)
+
+    Ok(res)
   }
 
   // ---------------------------------------------------------------
