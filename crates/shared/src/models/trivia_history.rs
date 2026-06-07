@@ -7,6 +7,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TriviaHistory {
-  pub time: String,
-  pub trivia: String,
+  pub time: String,   // yyyymmdd形式
+  pub trivia: String, // 雑学本文
 }
