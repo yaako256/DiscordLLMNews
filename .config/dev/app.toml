@@ -16,7 +16,7 @@ rss_fetch_interval_ms = 10000
 # 本文取得のクールタイム
 body_fetch_interval_ms = 31000
 # HTTPのタイムアウト秒数
-timeout_s = 180
+timeout_s = 30
 
 # =========================
 # LLM関連の設定
