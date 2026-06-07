@@ -175,7 +175,7 @@ pub async fn read_notification_log() -> AppResult<Vec<NotificationLogEntry>> {
 // ---------------------------------------------------------------
 // trivia_history.jsonl
 // ---------------------------------------------------------------
-/// trivia_history.jsonl を読み込む(send処理で使用)
+/// trivia_history.jsonl を読み込む(feed処理で使用)
 pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>> {
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
@@ -189,21 +189,27 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
     ));
   }
 
-  // ファイル読み込み
+  // ファイル読込
   let bytes = fs::read(trivia_history_path)
     .await
     .map_err(|e| AppError::Storage(format!("trivia_history 読み込み失敗: {e}")))?;
 
-  // jsonをデシリアライズ
-  let histories: Vec<TriviaHistory> = serde_json::from_slice(&bytes)
-    .map_err(|e| AppError::JsonParse(format!("trivia_history パース失敗: {e}")))?;
+  // 内容を取得
+  let content = String::from_utf8(bytes)
+    .map_err(|e| AppError::Storage(format!("trivia_history UTF-8変換失敗: {e}")))?;
 
-  // 最新n件に絞り込む
-  let latest_histories: Vec<TriviaHistory> = histories
-    .into_iter() //所有権ごともらう
-    .rev() // 後ろが新しいため、これで新しい順にする
-    .take(get_num) // n件だけ取得
-    .collect(); // ベクターに変換
+  // 1行ずつパースする
+  let histories: Vec<TriviaHistory> = content
+    .lines()
+    .filter(|line| !line.trim().is_empty())
+    .map(|line| {
+      serde_json::from_str(line)
+        .map_err(|e| AppError::JsonParse(format!("trivia_history 行パース失敗: {e} / 行: {line}")))
+    })
+    .collect::<AppResult<Vec<_>>>()?;
+
+  // 最新n件を取得
+  let latest_histories: Vec<TriviaHistory> = histories.into_iter().rev().take(get_num).collect();
 
   Ok(latest_histories)
 }
