@@ -273,6 +273,19 @@ impl Kernel {
       Err(e) => {
         error!("send処理失敗: {e}");
         logger::error("kernel", format!("send処理失敗: {e}"));
+        // process_historyに失敗を記録（握りつぶし）
+        let finish_at = utils::now_jst();
+        if let Err(pe) = infra::append_process_history(&shared::ProcessHistory {
+          process: "send".to_string(),
+          started_at: self.started_at,
+          finished_at: finish_at,
+          success: false,
+          error_summary: Some(e.to_string()),
+        })
+        .await
+        {
+          error!("process_history書き込み失敗(握りつぶし): {pe}");
+        }
         Err(e)
       }
     }
@@ -517,7 +530,7 @@ impl Kernel {
       })?;
 
     // 中身があるかの確認
-    if message_body == "".to_string() {
+    if message_body.is_empty() {
       return Err(AppError::Notifier("送信内容が空です".to_string()));
     }
 
