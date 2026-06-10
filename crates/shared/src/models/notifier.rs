@@ -23,4 +23,6 @@ pub trait Notifier {
 pub trait PatchNotifier {
   // パッチノートを送信
   async fn send_patch_note(&self) -> AppResult<()>;
+  // ログを送信
+  async fn send_logs(&self) -> AppResult<()>;
 }

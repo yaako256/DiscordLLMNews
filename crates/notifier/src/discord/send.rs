@@ -175,9 +175,11 @@ impl PatchNotifier for DiscordPatchSender {
     post_to_webhooks(&self.config.discord.news_webhooks, message_body).await?;
     info!("パッチノート送信完了");
 
-    // ログ通知webhookにもパッチ通知したことを通知しておく
-    info!("ログ通知用Webhookにも送信");
+    Ok(())
+  }
 
+  // ログを送信
+  async fn send_logs(&self) -> AppResult<()> {
     // ログ追加
     logger::info(
       "patch",
@@ -188,9 +190,9 @@ impl PatchNotifier for DiscordPatchSender {
     // send_logs: 呼び出し前にコードブロックで囲む
     let content = format!("```\n{content}\n```");
 
-    info!("通知ログ送信開始");
+    info!("パッチノートの通知ログ送信開始");
     post_to_webhooks(&self.config.discord.logs_webhooks, &content).await?;
-    info!("通知ログ送信完了");
+    info!("パッチノートの通知ログ送信完了");
 
     Ok(())
   }
