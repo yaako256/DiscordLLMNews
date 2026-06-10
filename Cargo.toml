@@ -27,7 +27,8 @@ chrono = { version = "0.4", features = ["serde"] }
 # HTTPリクエスト用
 reqwest = { version = "0.12", features = ["json"]}
 
-
+# 乱数生成用
+rand = "0.8"
 
 
 
