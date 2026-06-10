@@ -11,6 +11,10 @@ pub const NOTIFICATION_LOG_FILE_NAME: &str = "notification_log.jsonl";
 pub const PROCESS_HISTORY_FILE_NAME: &str = "process_history.jsonl";
 pub const TRIVIA_HISTORY_FILE_NAME: &str = "trivia_history.jsonl";
 
+// パッチ通知関連のデータファイルパス
+pub const PATCH_SUMMARY_FILE_NAME: &str = "patch_summary.json";
+pub const PATCH_HISTORY_FILE_NAME: &str = "patch_history.jsonl";
+
 // process_history.jsonl関連
 // 保存項目の上限
 // pub const PROCESS_HISTORY_MAX_ENTRIES: usize = 450usize;
