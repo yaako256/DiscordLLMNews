@@ -25,6 +25,14 @@ use serde::de::DeserializeOwned;
 mod gemini;
 mod request;
 
+// プレースホルダー
+// 選出数制限
+const PLACEHOLDER_SELECT: &'static str = "{SELECT_LIMIT}";
+// 日付
+const PLACEHOLDER_DATE: &'static str = "{DATE_TIME}";
+// トリビア履歴
+const PLACEHOLDER_TRIVIA: &'static str = "{TRIVIA_HISTORY}";
+
 // -------------------------
 // LLMClient
 // -------------------------
@@ -58,22 +66,22 @@ impl LLMClient {
 
     // new時点でreplace可能なプレースホルダーをすべて変換
     // {DATA_JSON}はリクエスト時に埋め込むためここでは触らない
-    let select_title_prompt = config
-      .prompts
-      .select_title
-      .replace("{SELECT_LIMIT}", &config.llm.title_select_limit.to_string());
+    let select_title_prompt = config.prompts.select_title.replace(
+      PLACEHOLDER_SELECT,
+      &config.llm.title_select_limit.to_string(),
+    );
 
-    let select_body_prompt = config
-      .prompts
-      .select_body
-      .replace("{SELECT_LIMIT}", &config.llm.body_select_limit.to_string());
+    let select_body_prompt = config.prompts.select_body.replace(
+      PLACEHOLDER_SELECT,
+      &config.llm.body_select_limit.to_string(),
+    );
 
     // summarizeのみTRIVIA_HISTORYもここで埋め込む
     let summarize_prompt = config
       .prompts
       .summarize
-      .replace("{TRIVIA_HISTORY}", &trivia_history_fmt)
-      .replace("{DATE_TIME}", date_time);
+      .replace(PLACEHOLDER_TRIVIA, &trivia_history_fmt)
+      .replace(PLACEHOLDER_DATE, date_time);
 
     Ok(Self {
       select_title_prompt,
