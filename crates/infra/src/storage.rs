@@ -19,11 +19,11 @@ use tracing::warn;
 // workspace内クレート
 use logger;
 use shared::constants::file::{
-  DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PROCESS_HISTORY_FILE_NAME,
-  TRIVIA_HISTORY_FILE_NAME,
+  DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PATCH_HISTORY_FILE_NAME,
+  PATCH_SUMMARY_FILE_NAME, PROCESS_HISTORY_FILE_NAME, TRIVIA_HISTORY_FILE_NAME,
 };
 use shared::{
-  NewsSummary, TriviaHistory,
+  NewsSummary, PatchHistory, PatchSummary, TriviaHistory,
   errors::{AppError, AppResult},
 };
 
@@ -181,33 +181,12 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
 
 /// trivia_history.jsonl に1行追記する
 pub async fn append_trivia_history(entry: &TriviaHistory) -> AppResult<()> {
-  //use tokio::io::AsyncWriteExt as _;
-
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // trivia_history.jsonlのパスを作成
   let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
 
-  /*
-    // jsonシリアライズ
-    let mut line = serde_json::to_string(entry)
-      .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
-    line.push('\n');
-
-    // ファイル読み込み
-    let mut file = fs::OpenOptions::new()
-      .create(true)
-      .append(true)
-      .open(trivia_history_path)
-      .await
-      .map_err(|e| AppError::Storage(format!("trivia_history オープン失敗: {e}")))?;
-
-    // ファイル書き込み
-    file
-      .write_all(line.as_bytes())
-      .await
-      .map_err(|e| AppError::Storage(format!("trivia_history 書き込み失敗: {e}")))?;
-  */
+  // jsonlに1行追加
   append_jsonl(&trivia_history_path, entry, "trivia_history").await
 }
 
@@ -216,33 +195,59 @@ pub async fn append_trivia_history(entry: &TriviaHistory) -> AppResult<()> {
 // ---------------------------------------------------------------
 /// process_history.jsonl に1行追記する
 pub async fn append_process_history(entry: &ProcessHistory) -> AppResult<()> {
-  //use tokio::io::AsyncWriteExt as _;
-
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // process_history.jsonlのパスを作成
   let process_history_path = data_dir.join(PROCESS_HISTORY_FILE_NAME);
-  /*
-  // jsonシリアライズ
-  let mut line = serde_json::to_string(entry)
-    .map_err(|e| AppError::Storage(format!("process_history シリアライズ失敗: {e}")))?;
-  line.push('\n');
 
-  // ファイル読み込み
-  let mut file = fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open(process_history_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("process_history オープン失敗: {e}")))?;
-
-  // ファイル書き込み
-  file
-    .write_all(line.as_bytes())
-    .await
-    .map_err(|e| AppError::Storage(format!("process_history 書き込み失敗: {e}")))?;
-  */
+  // jsonlに1行追加
   append_jsonl(&process_history_path, entry, "process_history").await
+}
+
+// ---------------------------------------------------------------
+// patch_summary.json
+// ---------------------------------------------------------------
+pub async fn write_patch_summary(summary: &PatchSummary) -> AppResult<()> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_summary.jsonのパスを作成
+  let patch_summary_path = data_dir.join(PATCH_SUMMARY_FILE_NAME);
+
+  // jsonにシリアライズ
+  let json = serde_json::to_string_pretty(summary)
+    .map_err(|e| AppError::Storage(format!("patch_summary シリアライズ失敗: {e}")))?;
+
+  // 書き込み
+  atomic_write(&patch_summary_path, json.as_bytes()).await
+}
+
+/// patch_summary.json を読み込む
+pub async fn read_patch_summary() -> AppResult<PatchSummary> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_summary.jsonのパスを作成
+  let patch_summary_path = data_dir.join(PATCH_SUMMARY_FILE_NAME);
+
+  // 文字列として読み込み
+  let content = read_file_string(&patch_summary_path, "patch_summary.json").await?;
+
+  // jsonにシリアライズ
+  serde_json::from_str(&content)
+    .map_err(|e| AppError::JsonParse(format!("patch_summary パース失敗: {e}")))
+}
+
+// ---------------------------------------------------------------
+// patch_history.jsonl
+// ---------------------------------------------------------------
+// patch_history.jsonl に1行追記する
+pub async fn append_patch_history(entry: &PatchHistory) -> AppResult<()> {
+  // &strをパス型に変換
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_history.jsonlのパスを作成
+  let patch_history_path = data_dir.join(PATCH_HISTORY_FILE_NAME);
+
+  // jsonlに1行追加
+  append_jsonl(&patch_history_path, entry, "process_history").await
 }
 
 // ---------------------------------------------------------------

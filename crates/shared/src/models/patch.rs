@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 // 時間型用
 use chrono::{DateTime, FixedOffset};
 
+// 送信時に使う方のファイル
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum PatchSummary {
@@ -24,4 +25,12 @@ pub enum PatchSummary {
     prepared_at: DateTime<FixedOffset>,
     error_summary: String,
   },
+}
+
+// パッチ送信記録で使う
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PatchHistory {
+  pub version: String,
+  pub sent_at: String, // yyyymmdd形式
+  pub summary: String, // 雑学本文
 }
