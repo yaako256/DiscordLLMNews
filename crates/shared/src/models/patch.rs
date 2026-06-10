@@ -14,11 +14,13 @@ use chrono::{DateTime, FixedOffset};
 pub enum PatchSummary {
   Ready {
     prepared_at: DateTime<FixedOffset>,
+    version: String,
     message_body: String,
   },
   Sent {
     sent_at: DateTime<FixedOffset>,
     prepared_at: DateTime<FixedOffset>,
+    version: String,
     message_body: String,
   },
   Failed {

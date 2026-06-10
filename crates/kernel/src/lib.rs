@@ -467,7 +467,7 @@ impl Kernel {
   /// パッチノート送信準備の処理フロー
   pub async fn patch_prepare(&mut self) -> AppResult<()> {
     info!(
-      "[{}] feed処理開始",
+      "[{}] patch-prepare処理開始",
       self.started_at.format("%Y/%m/%d %H:%M:%S")
     );
 
@@ -488,6 +488,19 @@ impl Kernel {
       }
       Err(e) => {
         error!("patch_prepare処理失敗: {e}");
+        // process_historyに失敗を記録（握りつぶし）
+        let finish_at = utils::now_jst();
+        if let Err(pe) = infra::append_process_history(&shared::ProcessHistory {
+          process: "patch-prepare".to_string(),
+          started_at: self.started_at,
+          finished_at: finish_at,
+          success: false,
+          error_summary: Some(e.to_string()),
+        })
+        .await
+        {
+          error!("process_history書き込み失敗(握りつぶし): {pe}");
+        }
         Err(e)
       }
     }
@@ -509,6 +522,7 @@ impl Kernel {
     // patch_summary.json に ready で書き込む
     infra::write_patch_summary(&shared::PatchSummary::Ready {
       prepared_at,
+      version: self.config.patch.version,
       message_body,
     })
     .await?;
@@ -549,7 +563,19 @@ impl Kernel {
       }
       Err(e) => {
         error!("patch-send処理失敗: {e}");
-        logger::error("kernel", format!("patch-send処理失敗: {e}"));
+        // process_historyに失敗を記録（握りつぶし）
+        let finish_at = utils::now_jst();
+        if let Err(pe) = infra::append_process_history(&shared::ProcessHistory {
+          process: "patch-send".to_string(),
+          started_at: self.started_at,
+          finished_at: finish_at,
+          success: false,
+          error_summary: Some(e.to_string()),
+        })
+        .await
+        {
+          error!("process_history書き込み失敗(握りつぶし): {pe}");
+        }
         Err(e)
       }
     }
@@ -596,25 +622,27 @@ impl Kernel {
 
     // patch_summary を sent に更新
     let sent_at = utils::now_jst();
-    let (prepared_at, message_body) = match sender.get_send_item() {
+    let (prepared_at, version, message_body) = match sender.get_send_item() {
       PatchSummary::Ready {
         prepared_at,
+        version,
         message_body,
-      } => (*prepared_at, message_body.clone()),
+      } => (*prepared_at, version, message_body),
       _ => unreachable!("上のmatchで確認済み"),
     };
     infra::write_patch_summary(&shared::PatchSummary::Sent {
       sent_at,
       prepared_at,
+      version: version.clone(),
       message_body: message_body.clone(),
     })
     .await?;
 
     // patch_history に追記
     infra::append_patch_history(&shared::PatchHistory {
-      version: "aaa".to_string(),
+      version: *version,
       sent_at: sent_at.format("%Y/%m/%d %H:%M:%S").to_string(),
-      summary: message_body,
+      summary: *message_body,
     })
     .await?;
 
