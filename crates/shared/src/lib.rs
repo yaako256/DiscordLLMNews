@@ -15,7 +15,7 @@ pub use models::{
   },
   news_fetch::{NewsFetcher, RSSItem},
   news_item::NewsItem,
-  notifier::Notifier,
+  notifier::{Notifier, PatchNotifier},
   patch::{PatchHistory, PatchSummary},
   process_history::ProcessHistory,
   state::NewsSummary,

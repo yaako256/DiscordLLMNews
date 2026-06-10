@@ -8,16 +8,19 @@ use infra;
 use logger::NotificationLogEntry;
 use serde_json::json;
 use shared::{
-  NewsSummary, Notifier,
+  NewsSummary, Notifier, PatchNotifier, PatchSummary,
   errors::{AppError, AppResult},
   utils,
 };
 use std::sync::Arc;
 use tracing::{info, warn};
 
-// 仮でここに定義
+// Discord定数定義
 const DISCORD_MAX_CHARS: usize = 2000;
 
+// ---------------------------------------------------------------
+// DiscordSender（ニュース送信用）
+// ---------------------------------------------------------------
 pub struct DiscordSender {
   config: Arc<AppConfig>,
   send_item: NewsSummary,
@@ -61,30 +64,8 @@ impl DiscordSender {
   pub fn get_send_item(&self) -> &NewsSummary {
     &self.send_item
   }
-
-  /// 指定された全URLに同じテキストを送信する
-  async fn post_to_webhooks(&self, urls: &[String], content: &str) -> AppResult<()> {
-    for url in urls {
-      // コードブロックで囲む
-      let body = json!({ "content": content });
-      let resp = http_client::http()
-        .post(url)
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| AppError::Notifier(format!("Discord Webhook 送信失敗: {e}")))?;
-
-      if !resp.status().is_success() {
-        let status = resp.status();
-        return Err(AppError::Notifier(format!(
-          "Discord Webhook エラーレスポンス: status={status}"
-        )));
-      }
-    }
-
-    Ok(())
-  }
 }
+
 #[async_trait]
 impl Notifier for DiscordSender {
   /// ニュース本文を news_webhooks の全URLへ送信する
@@ -102,9 +83,7 @@ impl Notifier for DiscordSender {
     };
 
     info!("ニュース本文送信開始 文字数: {}", message_body.len());
-    self
-      .post_to_webhooks(&self.config.discord.news_webhooks, message_body)
-      .await?;
+    post_to_webhooks(&self.config.discord.news_webhooks, message_body).await?;
     info!("ニュース本文送信完了");
 
     Ok(())
@@ -151,13 +130,100 @@ impl Notifier for DiscordSender {
     let content = format!("```\n{content}\n```");
 
     info!("通知ログ送信開始");
-    self
-      .post_to_webhooks(&self.config.discord.logs_webhooks, &content)
-      .await?;
+    post_to_webhooks(&self.config.discord.logs_webhooks, &content).await?;
     info!("通知ログ送信完了");
 
     Ok(())
   }
+}
+
+// ---------------------------------------------------------------
+// PatchSender（パッチノート送信用）
+// ---------------------------------------------------------------
+pub struct DiscordPatchSender {
+  config: Arc<AppConfig>,
+  send_item: PatchSummary,
+}
+impl DiscordPatchSender {
+  /// patch_summary.json と notification_log.jsonl を読み込んでインスタンスを生成する
+  pub async fn try_load(config: Arc<AppConfig>) -> AppResult<Self> {
+    // news_summary.jsonのロード
+    let send_item = infra::read_patch_summary().await?;
+
+    Ok(Self { config, send_item })
+  }
+}
+
+#[async_trait]
+impl PatchNotifier for DiscordPatchSender {
+  /// パッチノートを送信する
+  async fn send_patch_note(&self) -> AppResult<()> {
+    let message_body = match &self.send_item {
+      PatchSummary::Ready { message_body, .. } => message_body,
+      // ready以外のステータスでこのメソッドが呼ばれることは想定しないが、
+      // 万が一の場合はエラーとして返す
+      other => {
+        return Err(AppError::Notifier(format!(
+          "send_patch_note: 送信対象は Ready のみだが {:?} が渡された",
+          other
+        )));
+      }
+    };
+
+    info!("ニュース通知用Webhookに送信");
+    info!("パッチノート送信開始 文字数: {}", message_body.len());
+    post_to_webhooks(&self.config.discord.news_webhooks, message_body).await?;
+    info!("パッチノート送信完了");
+
+    // ログ通知webhookにもパッチ通知したことを通知しておく
+    info!("ログ通知用Webhookにも送信");
+
+    // ログ追加
+    logger::info(
+      "patch",
+      format!("{}のパッチノートを通知しました", self.config.patch.version),
+    );
+    // sendのログ(グローバルloggerから取得)
+    let content = logger::to_formatted_string();
+    // send_logs: 呼び出し前にコードブロックで囲む
+    let content = format!("```\n{content}\n```");
+
+    info!("通知ログ送信開始");
+    post_to_webhooks(&self.config.discord.logs_webhooks, &content).await?;
+    info!("通知ログ送信完了");
+
+    Ok(())
+  }
+}
+
+// ---------------------------------------------------------------
+// 自由関数（DiscordSender・PatchSender共通）
+// ---------------------------------------------------------------
+/// 指定された全URLに同じテキストを送信する
+async fn post_to_webhooks(urls: &[String], content: &str) -> AppResult<()> {
+  // 全 Webhook URL に送る
+  for url in urls {
+    // 仕様のjson型にする
+    let body = json!({ "content": content });
+
+    // 送信する
+    let resp = http_client::http()
+      .post(url)
+      .json(&body)
+      .send()
+      .await
+      .map_err(|e| AppError::Notifier(format!("Discord Webhook 送信失敗: {e}")))?;
+
+    // 送信成功チェック
+    if !resp.status().is_success() {
+      let status = resp.status();
+      return Err(AppError::Notifier(format!(
+        "Discord Webhook エラーレスポンス: status={status}"
+      )));
+    }
+  }
+
+  Ok(())
 }
 
 /// Vec<NotificationLogEntry> を整形済み文字列に変換する
