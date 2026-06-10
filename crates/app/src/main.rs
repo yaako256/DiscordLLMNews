@@ -13,7 +13,6 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-  println!("Hello, world!");
   // ----------------------
   // 初期設定
   // ----------------------
@@ -45,10 +44,6 @@ async fn main() -> AppResult<()> {
   http_client::init(config.rss.timeout_s as u64, config.llm.timeout_s as u64);
 
   // ----------------------
-  // 処理フロー
-  // ----------------------
-
-  // ----------------------
   // 実行処理
   // ----------------------
   // コマンドの引数をパース
@@ -78,6 +73,18 @@ async fn main() -> AppResult<()> {
       let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
       // send処理
       knl.send().await
+    }
+    ["patch-prepare"] => {
+      // kernelをインスタンス
+      let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
+      // patch_prepare処理
+      knl.patch_prepare().await
+    }
+    ["patch-send"] => {
+      // kernelをインスタンス
+      let mut knl = kernel::Kernel::new(Arc::clone(&config), start_at);
+      // patch_send処理
+      knl.patch_send().await
     }
     [] => Err(AppError::InvalidCommand(
       "コマンドを指定してください".into(),

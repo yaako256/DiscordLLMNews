@@ -15,6 +15,8 @@ pub struct AppConfig {
 
   #[serde(skip)]
   pub prompts: PromptConfig, // loaderで後から詰める
+
+  pub patch: PatchConfig,
 }
 
 /// RSS関連の設定
@@ -89,4 +91,13 @@ pub struct DiscordConfig {
   pub news_webhooks: Vec<String>,
   // ログ通知用webhook
   pub logs_webhooks: Vec<String>,
+}
+
+// パッチ通知関連の設定
+#[derive(Debug, Deserialize)]
+pub struct PatchConfig {
+  // パッチのバージョン
+  pub version: String,
+  // パッチノートのパス
+  pub patch_note_path: String,
 }

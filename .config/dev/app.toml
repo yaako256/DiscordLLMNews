@@ -83,3 +83,15 @@ summarize = ".config/prompts/summarize.md"
 news_webhooks = ["Webhook1","Webhook2"]
 # ログ通知用webhook
 logs_webhooks = ["Webhook1","Webhook2"]
+
+
+
+# =========================
+# パッチ通知関連
+# =========================
+[patch]
+# バージョン番号
+version = "1.0.0"
+# パッチノートが書かれたパス
+patch_note_path = ".config/patch_note.md"
+

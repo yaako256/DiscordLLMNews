@@ -16,7 +16,7 @@ use config::{Config, Environment, File};
 use shared::errors::{AppError, AppResult};
 
 // 内部ライブラリ(自クレート)
-use super::models::{AppConfig, DiscordConfig, LLMConfig, PromptConfig, RSSConfig};
+use super::models::{AppConfig, DiscordConfig, LLMConfig, PatchConfig, PromptConfig, RSSConfig};
 
 /// プロンプトのパスを入れる構造体
 /// loader内だけで使う中間型。外部には公開しない
@@ -34,6 +34,7 @@ struct RawConfig {
   llm: LLMConfig,
   discord: DiscordConfig,
   prompt_paths: PromptPaths,
+  patch: PatchConfig,
 }
 
 /// configをロードする
@@ -68,6 +69,7 @@ pub fn load_config() -> AppResult<AppConfig> {
     llm: raw.llm,
     discord: raw.discord,
     prompts,
+    patch: raw.patch,
   })
 }
 
@@ -83,5 +85,5 @@ fn load_prompts(paths: &PromptPaths) -> AppResult<PromptConfig> {
 /// プロンプト(1つ)をロードする
 fn read_prompt(path: &str) -> AppResult<String> {
   std::fs::read_to_string(path)
-    .map_err(|e| AppError::Config(format!("プロンプトファイル読込失敗: {path}: {e}")))
+    .map_err(|e| AppError::Config(format!("マークダウンファイル読込失敗: {path}: {e}")))
 }

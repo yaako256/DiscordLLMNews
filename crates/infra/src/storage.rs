@@ -19,11 +19,11 @@ use tracing::warn;
 // workspace内クレート
 use logger;
 use shared::constants::file::{
-  DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PROCESS_HISTORY_FILE_NAME,
-  TRIVIA_HISTORY_FILE_NAME,
+  DATA_DIR_PATH, NEWS_SUMMARY_FILE_NAME, NOTIFICATION_LOG_FILE_NAME, PATCH_HISTORY_FILE_NAME,
+  PATCH_SUMMARY_FILE_NAME, PROCESS_HISTORY_FILE_NAME, TRIVIA_HISTORY_FILE_NAME,
 };
 use shared::{
-  NewsSummary, TriviaHistory,
+  NewsSummary, PatchHistory, PatchSummary, TriviaHistory,
   errors::{AppError, AppResult},
 };
 
@@ -38,7 +38,9 @@ pub async fn init_data_dir(started_at: DateTime<FixedOffset>) -> AppResult<()> {
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
 
   // dataフォルダがあるか確認。なかったら再帰的に作成する
-  ensure_dir(data_dir).await?;
+  fs::create_dir_all(data_dir)
+    .await
+    .map_err(|e| AppError::Storage(format!("ディレクトリ作成失敗 {}: {e}", data_dir.display())))?;
 
   // news_summary.jsonをrunningで上書き
   write_news_summary(&NewsSummary::Running { started_at }).await?;
@@ -47,13 +49,6 @@ pub async fn init_data_dir(started_at: DateTime<FixedOffset>) -> AppResult<()> {
   write_notification_log_init().await?;
 
   Ok(())
-}
-
-/// ディレクトリが存在しなければ再帰的に作成する
-async fn ensure_dir(dir: &Path) -> AppResult<()> {
-  fs::create_dir_all(dir)
-    .await
-    .map_err(|e| AppError::Storage(format!("ディレクトリ作成失敗 {}: {e}", dir.display())))
 }
 
 // ---------------------------------------------------------------
@@ -82,20 +77,11 @@ pub async fn read_news_summary() -> AppResult<NewsSummary> {
   // news_summary.jsonのパスを作成
   let summary_path = data_dir.join(NEWS_SUMMARY_FILE_NAME);
 
-  // ファイル存在チェックを明示的に行い、専用メッセージで返す
-  if !summary_path.exists() {
-    return Err(AppError::Storage(
-      "news_summary.json が存在しない。feed が未実行の可能性があり".to_string(),
-    ));
-  }
-
   // ファイル読み込み
-  let bytes = fs::read(summary_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("news_summary 読み込み失敗: {e}")))?;
+  let content = read_file_string(&summary_path, "news_summary").await?;
 
   // jsonをデシリアライズ
-  serde_json::from_slice(&bytes)
+  serde_json::from_str(&content)
     .map_err(|e| AppError::JsonParse(format!("news_summary パース失敗: {e}")))
 }
 
@@ -111,6 +97,7 @@ pub async fn write_notification_log_init() -> AppResult<()> {
   // 書き込み
   atomic_write(&notification_path, "".as_bytes()).await
 }
+
 /// notification_log.json を atomic に書き込む
 /// 一時ファイルに書いてからリネームする（書き込み途中でプロセスが死んでも壊れない）
 pub async fn write_notification_log() -> AppResult<()> {
@@ -133,17 +120,8 @@ pub async fn read_notification_log() -> AppResult<Vec<NotificationLogEntry>> {
   // notification_log.jsonlのパスを作成
   let notification_path = data_dir.join(NOTIFICATION_LOG_FILE_NAME);
 
-  // ファイル存在チェックを明示的に行い、専用メッセージで返す
-  if !notification_path.exists() {
-    return Err(AppError::Storage(
-      "notification_log.jsonl が存在しない。feed が未実行の可能性があり".to_string(),
-    ));
-  }
-
   // ファイル読み込み
-  let content = fs::read_to_string(notification_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("notification_log 読み込み失敗: {e}")))?;
+  let content = read_file_string(&notification_path, "notification_log").await?;
 
   // 空ファイルの場合は空Vecを返す
   if content.trim().is_empty() {
@@ -182,21 +160,8 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
   // trivia_history.jsonlのパスを作成
   let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
 
-  // ファイル存在チェックを明示的に行い、専用メッセージで返す
-  if !trivia_history_path.exists() {
-    return Err(AppError::Storage(
-      "trivia_history.jsonl が存在しない。feed が未実行の可能性があり".to_string(),
-    ));
-  }
-
-  // ファイル読込
-  let bytes = fs::read(trivia_history_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("trivia_history 読み込み失敗: {e}")))?;
-
-  // 内容を取得
-  let content = String::from_utf8(bytes)
-    .map_err(|e| AppError::Storage(format!("trivia_history UTF-8変換失敗: {e}")))?;
+  // ファイル読み込み
+  let content = read_file_string(&trivia_history_path, "trivia_history").await?;
 
   // 1行ずつパースする
   let histories: Vec<TriviaHistory> = content
@@ -216,33 +181,13 @@ pub async fn read_trivia_history(get_num: usize) -> AppResult<Vec<TriviaHistory>
 
 /// trivia_history.jsonl に1行追記する
 pub async fn append_trivia_history(entry: &TriviaHistory) -> AppResult<()> {
-  use tokio::io::AsyncWriteExt as _;
-
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // trivia_history.jsonlのパスを作成
   let trivia_history_path = data_dir.join(TRIVIA_HISTORY_FILE_NAME);
 
-  // jsonシリアライズ
-  let mut line = serde_json::to_string(entry)
-    .map_err(|e| AppError::Storage(format!("trivia_history シリアライズ失敗: {e}")))?;
-  line.push('\n');
-
-  // ファイル読み込み
-  let mut file = fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open(trivia_history_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("trivia_history オープン失敗: {e}")))?;
-
-  // ファイル書き込み
-  file
-    .write_all(line.as_bytes())
-    .await
-    .map_err(|e| AppError::Storage(format!("trivia_history 書き込み失敗: {e}")))?;
-
-  Ok(())
+  // jsonlに1行追加
+  append_jsonl(&trivia_history_path, entry, "trivia_history").await
 }
 
 // ---------------------------------------------------------------
@@ -250,38 +195,78 @@ pub async fn append_trivia_history(entry: &TriviaHistory) -> AppResult<()> {
 // ---------------------------------------------------------------
 /// process_history.jsonl に1行追記する
 pub async fn append_process_history(entry: &ProcessHistory) -> AppResult<()> {
-  use tokio::io::AsyncWriteExt as _;
-
   // &strをパス型に変換
   let data_dir: &Path = Path::new(DATA_DIR_PATH);
   // process_history.jsonlのパスを作成
   let process_history_path = data_dir.join(PROCESS_HISTORY_FILE_NAME);
 
-  // jsonシリアライズ
-  let mut line = serde_json::to_string(entry)
-    .map_err(|e| AppError::Storage(format!("process_history シリアライズ失敗: {e}")))?;
-  line.push('\n');
+  // jsonlに1行追加
+  append_jsonl(&process_history_path, entry, "process_history").await
+}
 
-  // ファイル読み込み
-  let mut file = fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open(process_history_path)
-    .await
-    .map_err(|e| AppError::Storage(format!("process_history オープン失敗: {e}")))?;
+// ---------------------------------------------------------------
+// patch_summary.json
+// ---------------------------------------------------------------
+pub async fn write_patch_summary(summary: &PatchSummary) -> AppResult<()> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_summary.jsonのパスを作成
+  let patch_summary_path = data_dir.join(PATCH_SUMMARY_FILE_NAME);
 
-  // ファイル書き込み
-  file
-    .write_all(line.as_bytes())
-    .await
-    .map_err(|e| AppError::Storage(format!("process_history 書き込み失敗: {e}")))?;
+  // jsonにシリアライズ
+  let json = serde_json::to_string_pretty(summary)
+    .map_err(|e| AppError::Storage(format!("patch_summary シリアライズ失敗: {e}")))?;
 
-  Ok(())
+  // 書き込み
+  atomic_write(&patch_summary_path, json.as_bytes()).await
+}
+
+/// patch_summary.json を読み込む
+pub async fn read_patch_summary() -> AppResult<PatchSummary> {
+  // データフォルダのパスを作成
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_summary.jsonのパスを作成
+  let patch_summary_path = data_dir.join(PATCH_SUMMARY_FILE_NAME);
+
+  // 文字列として読み込み
+  let content = read_file_string(&patch_summary_path, "patch_summary.json").await?;
+
+  // jsonにシリアライズ
+  serde_json::from_str(&content)
+    .map_err(|e| AppError::JsonParse(format!("patch_summary パース失敗: {e}")))
+}
+
+// ---------------------------------------------------------------
+// patch_history.jsonl
+// ---------------------------------------------------------------
+// patch_history.jsonl に1行追記する
+pub async fn append_patch_history(entry: &PatchHistory) -> AppResult<()> {
+  // &strをパス型に変換
+  let data_dir: &Path = Path::new(DATA_DIR_PATH);
+  // patch_history.jsonlのパスを作成
+  let patch_history_path = data_dir.join(PATCH_HISTORY_FILE_NAME);
+
+  // jsonlに1行追加
+  append_jsonl(&patch_history_path, entry, "process_history").await
 }
 
 // ---------------------------------------------------------------
 // 内部ユーティリティ
 // ---------------------------------------------------------------
+/// ファイルを文字列として読み込む（存在チェック付き）
+async fn read_file_string(path: &Path, label: &str) -> AppResult<String> {
+  // ファイルの存在確認
+  if !path.exists() {
+    return Err(AppError::Storage(format!(
+      "{label} が存在しない。feed が未実行の可能性があり"
+    )));
+  }
+  // 文字列としてファイルを読む
+  fs::read_to_string(path)
+    .await
+    .map_err(|e| AppError::Storage(format!("{label} 読み込み失敗: {e}")))
+}
+
 /// 同ディレクトリに一時ファイルを作り、書き込み後にアトミックにリネームする
 async fn atomic_write(path: &Path, data: &[u8]) -> AppResult<()> {
   let dir = path.parent().unwrap_or(Path::new("."));
@@ -302,4 +287,30 @@ async fn atomic_write(path: &Path, data: &[u8]) -> AppResult<()> {
   })?;
 
   Ok(())
+}
+
+/// 値をJSONL形式で1行追記する
+async fn append_jsonl<T: serde::Serialize>(path: &Path, entry: &T, label: &str) -> AppResult<()> {
+  use tokio::io::AsyncWriteExt as _;
+
+  // jsonにシリアライズ
+  let mut line = serde_json::to_string(entry)
+    .map_err(|e| AppError::Storage(format!("{label} シリアライズ失敗: {e}")))?;
+
+  // 改行を追加
+  line.push('\n');
+
+  // ファイルを開く
+  let mut file = fs::OpenOptions::new()
+    .create(true)
+    .append(true)
+    .open(path)
+    .await
+    .map_err(|e| AppError::Storage(format!("{label} オープン失敗: {e}")))?;
+
+  // 1行付け足して書き込む
+  file
+    .write_all(line.as_bytes())
+    .await
+    .map_err(|e| AppError::Storage(format!("{label} 書き込み失敗: {e}")))
 }
