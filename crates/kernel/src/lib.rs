@@ -516,13 +516,18 @@ impl Kernel {
         ))
       })?;
 
+    // 中身があるかの確認
+    if message_body == "".to_string() {
+      return Err(AppError::Notifier("送信内容が空です".to_string()));
+    }
+
     // 時間取得
     let prepared_at = utils::now_jst();
 
     // patch_summary.json に ready で書き込む
     infra::write_patch_summary(&shared::PatchSummary::Ready {
       prepared_at,
-      version: self.config.patch.version,
+      version: self.config.patch.version.clone(),
       message_body,
     })
     .await?;
@@ -594,7 +599,11 @@ impl Kernel {
 
     // ステータス確認
     match sender.get_send_item() {
-      PatchSummary::Ready { .. } => {
+      PatchSummary::Ready { message_body, .. } => {
+        // 中身があるかの確認
+        if *message_body == "".to_string() {
+          return Err(AppError::Notifier("送信内容が空です".to_string()));
+        }
         info!("patch_summary: ready を確認、送信フローへ進む");
       }
       PatchSummary::Sent { sent_at, .. } => {
@@ -613,10 +622,6 @@ impl Kernel {
     // 送信
     if let Err(e) = sender.send_patch_note().await {
       error!("パッチ本文送信失敗: {e}");
-      logger::error("patch-send", format!("パッチ本文送信失敗: {e}"));
-      if let Err(le) = sender.send_logs().await {
-        error!("エラー時ログ送信失敗(握りつぶし): {le}");
-      }
       return Err(e);
     }
 
@@ -640,9 +645,9 @@ impl Kernel {
 
     // patch_history に追記
     infra::append_patch_history(&shared::PatchHistory {
-      version: *version,
+      version: version.clone(),
       sent_at: sent_at.format("%Y/%m/%d %H:%M:%S").to_string(),
-      summary: *message_body,
+      summary: message_body.clone(),
     })
     .await?;
 
