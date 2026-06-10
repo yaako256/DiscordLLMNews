@@ -152,6 +152,11 @@ impl DiscordPatchSender {
 
     Ok(Self { config, send_item })
   }
+
+  /// send_itemのゲッター関数
+  pub fn get_send_item(&self) -> &PatchSummary {
+    &self.send_item
+  }
 }
 
 #[async_trait]

@@ -32,5 +32,5 @@ pub enum PatchSummary {
 pub struct PatchHistory {
   pub version: String,
   pub sent_at: String, // yyyymmdd形式
-  pub summary: String, // 雑学本文
+  pub summary: String, // パッチノート本文
 }

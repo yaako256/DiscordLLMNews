@@ -11,7 +11,7 @@ use tracing::{debug, error, info, warn};
 use logger;
 // 共通型
 use shared::{
-  NewsFetcher, NewsSummary, SummaryResponse, TriviaHistory,
+  NewsFetcher, NewsSummary, PatchNotifier, PatchSummary, SummaryResponse, TriviaHistory,
   errors::{AppError, AppResult},
   utils,
 };
@@ -21,7 +21,7 @@ use config::AppConfig;
 use llm::LLMClient;
 // news_fetch
 use news_fetch::LivedoorNewsFetcher;
-use notifier::DiscordSender;
+use notifier::{DiscordPatchSender, DiscordSender};
 use shared::Notifier;
 use tokio;
 
@@ -248,7 +248,7 @@ impl Kernel {
     Ok(())
   }
 
-  // sendの処理フロー(未実装)
+  // sendの処理フロー
   pub async fn send(&mut self) -> AppResult<()> {
     info!(
       "[{}] send処理開始",
@@ -460,6 +460,173 @@ impl Kernel {
     } else {
       info!("通知ログ Discord 送信完了");
     }
+
+    Ok(())
+  }
+
+  /// パッチノート送信準備の処理フロー
+  pub async fn patch_prepare(&mut self) -> AppResult<()> {
+    info!(
+      "[{}] feed処理開始",
+      self.started_at.format("%Y/%m/%d %H:%M:%S")
+    );
+
+    // ----------------------
+    // 処理フロー
+    // ----------------------
+    // 処理フローを別関数に分けて、成功と失敗の処理を楽にする
+    let result = self.patch_prepare_inner().await;
+
+    // 正常終了したか
+    match result {
+      Ok(()) => {
+        info!(
+          "[{}] patch_prepare処理正常終了",
+          utils::now_jst().format("%Y/%m/%d %H:%M:%S")
+        );
+        Ok(())
+      }
+      Err(e) => {
+        error!("patch_prepare処理失敗: {e}");
+        Err(e)
+      }
+    }
+  }
+
+  async fn patch_prepare_inner(&mut self) -> AppResult<()> {
+    // patch_note.md の内容を取得
+    let message_body =
+      std::fs::read_to_string(&self.config.patch.patch_note_path).map_err(|e| {
+        AppError::Config(format!(
+          "マークダウンファイル読込失敗: {}: {e}",
+          self.config.patch.patch_note_path
+        ))
+      })?;
+
+    // 時間取得
+    let prepared_at = utils::now_jst();
+
+    // patch_summary.json に ready で書き込む
+    infra::write_patch_summary(&shared::PatchSummary::Ready {
+      prepared_at,
+      message_body,
+    })
+    .await?;
+
+    // process_history に記録
+    infra::append_process_history(&shared::ProcessHistory {
+      process: "patch-prepare".to_string(),
+      started_at: self.started_at,
+      finished_at: prepared_at,
+      success: true,
+      error_summary: None,
+    })
+    .await?;
+
+    info!("patch_summary を ready で保存しました");
+    Ok(())
+  }
+
+  /// パッチノート送信の処理フロー
+  pub async fn patch_send(&mut self) -> AppResult<()> {
+    info!(
+      "[{}] patch-send処理開始",
+      self.started_at.format("%Y/%m/%d %H:%M:%S")
+    );
+
+    // ----------------------
+    // 処理フロー
+    // ----------------------
+    let result = self.patch_send_inner().await;
+
+    match result {
+      Ok(()) => {
+        info!(
+          "[{}] patch-send処理正常終了",
+          utils::now_jst().format("%Y/%m/%d %H:%M:%S")
+        );
+        Ok(())
+      }
+      Err(e) => {
+        error!("patch-send処理失敗: {e}");
+        logger::error("kernel", format!("patch-send処理失敗: {e}"));
+        Err(e)
+      }
+    }
+  }
+
+  async fn patch_send_inner(&mut self) -> AppResult<()> {
+    // PatchSenderのロード(インスタンス)
+    let sender = match DiscordPatchSender::try_load(Arc::clone(&self.config)).await {
+      Ok(s) => s,
+      Err(e) => {
+        let msg = format!("PatchSender ロード失敗: {e}");
+        error!(msg);
+        return Err(AppError::Notifier(msg));
+      }
+    };
+
+    // ステータス確認
+    match sender.get_send_item() {
+      PatchSummary::Ready { .. } => {
+        info!("patch_summary: ready を確認、送信フローへ進む");
+      }
+      PatchSummary::Sent { sent_at, .. } => {
+        let msg =
+          format!("patch_summary: sent を検知 (sent_at: {sent_at})。二重送信防止のためスキップ");
+        error!(msg);
+        return Err(AppError::Notifier(msg));
+      }
+      PatchSummary::Failed { error_summary, .. } => {
+        let msg = format!("patch_summary: failed を検知 ({error_summary})");
+        error!(msg);
+        return Err(AppError::Notifier(msg));
+      }
+    }
+
+    // 送信
+    if let Err(e) = sender.send_patch_note().await {
+      error!("パッチ本文送信失敗: {e}");
+      logger::error("patch-send", format!("パッチ本文送信失敗: {e}"));
+      if let Err(le) = sender.send_logs().await {
+        error!("エラー時ログ送信失敗(握りつぶし): {le}");
+      }
+      return Err(e);
+    }
+
+    // patch_summary を sent に更新
+    let sent_at = utils::now_jst();
+    let (prepared_at, message_body) = match sender.get_send_item() {
+      PatchSummary::Ready {
+        prepared_at,
+        message_body,
+      } => (*prepared_at, message_body.clone()),
+      _ => unreachable!("上のmatchで確認済み"),
+    };
+    infra::write_patch_summary(&shared::PatchSummary::Sent {
+      sent_at,
+      prepared_at,
+      message_body: message_body.clone(),
+    })
+    .await?;
+
+    // patch_history に追記
+    infra::append_patch_history(&shared::PatchHistory {
+      version: "aaa".to_string(),
+      sent_at: sent_at.format("%Y/%m/%d %H:%M:%S").to_string(),
+      summary: message_body,
+    })
+    .await?;
+
+    // process_history に記録
+    infra::append_process_history(&shared::ProcessHistory {
+      process: "patch-send".to_string(),
+      started_at: self.started_at,
+      finished_at: sent_at,
+      success: true,
+      error_summary: None,
+    })
+    .await?;
 
     Ok(())
   }

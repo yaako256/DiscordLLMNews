@@ -1,3 +1,3 @@
 mod discord;
 
-pub use discord::send::DiscordSender;
+pub use discord::send::{DiscordPatchSender, DiscordSender};
