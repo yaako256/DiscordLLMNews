@@ -13,6 +13,7 @@ http_client = { path = "../http_client" }
 tracing = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
+rand = { workspace = true }
 
 # 固有クレート
 # rss feed用クレート

@@ -1291,6 +1291,7 @@ dependencies = [
  "http_client",
  "infra",
  "logger",
+ "rand",
  "regex",
  "rss",
  "scraper",

@@ -5,6 +5,8 @@ crates/news_fetch/src/livedoor_news/news_fetcher.rs
 // 標準ライブラリ
 use std::sync::Arc;
 use std::sync::OnceLock;
+// Vecのカテゴリ分け用
+use std::collections::{BTreeMap, VecDeque};
 
 // 非同期処理用
 use tokio::time::{Duration, sleep};
@@ -17,6 +19,8 @@ use scraper::{Html, Selector};
 use tracing::warn;
 // 通常ログ
 use tracing::{debug, info};
+// 乱数用
+use rand::seq::SliceRandom;
 
 // workspace内クレート
 use config::AppConfig;
@@ -30,7 +34,8 @@ use shared::{
 
 // 自クレート
 use super::constants::{
-  GOOGLE_AD_REGEX, ID_INCREMENT, LIVEDOOR_BODY_SELECTOR, LIVEDOOR_NEWS_RSS, LIVEDOOR_TITLE_SELECTOR,
+  CATEGORY_UNIT, GOOGLE_AD_REGEX, ID_INCREMENT, LIVEDOOR_BODY_SELECTOR, LIVEDOOR_NEWS_RSS,
+  LIVEDOOR_TITLE_SELECTOR,
 };
 
 #[derive(Debug)]
@@ -52,6 +57,55 @@ impl LivedoorNewsFetcher {
   pub fn get_news_items(&self) -> Vec<NewsItem> {
     self.news_items.clone()
   }
+
+  /// カテゴリをバラけさせながら、ランダムにソートする関数
+  fn spread_by_id_category(&mut self, category_unit: usize) {
+    let mut rng = rand::thread_rng();
+
+    // news_items を一旦取り出す
+    let items = std::mem::take(&mut self.news_items);
+
+    // カテゴリごとに分割
+    let mut groups: BTreeMap<usize, Vec<NewsItem>> = BTreeMap::new();
+
+    for item in items {
+      let category_key = item.id / category_unit;
+
+      groups.entry(category_key).or_default().push(item);
+    }
+
+    // 各カテゴリ内をシャッフル
+    let mut queues: Vec<VecDeque<NewsItem>> = groups
+      .into_values()
+      .map(|mut group| {
+        group.shuffle(&mut rng);
+        VecDeque::from(group)
+      })
+      .collect();
+
+    // カテゴリ順もシャッフル
+    queues.shuffle(&mut rng);
+
+    // ラウンドロビンで再構築
+    let mut result = Vec::new();
+
+    loop {
+      let mut added = false;
+
+      for queue in &mut queues {
+        if let Some(item) = queue.pop_front() {
+          result.push(item);
+          added = true;
+        }
+      }
+
+      if !added {
+        break;
+      }
+    }
+
+    self.news_items = result;
+  }
 }
 
 #[async_trait]
@@ -70,7 +124,7 @@ impl NewsFetcher for LivedoorNewsFetcher {
 
     // 各RSS itemごとに処理を行う
     for (i, rss_item) in self.rss_items.iter().enumerate() {
-      match fetch_single_rss(rss_item, limit).await {
+      match fetch_single_rss(rss_item, limit, CATEGORY_UNIT * (i + 1)).await {
         Ok(items) => self.news_items.extend(items),
         Err(e) => {
           // 1カテゴリ失敗しても続行し、ログに残す
@@ -121,8 +175,13 @@ impl NewsFetcher for LivedoorNewsFetcher {
     // 要素数取得
     let items_len = self.news_items.len();
 
+    // 取得順をいい感じにするようなソート
+    // カテゴリをバラけさせる
+    self.spread_by_id_category(CATEGORY_UNIT);
+    info!("{:#?}", self.news_items);
     // それぞれ実行する
     for (i, item) in self.news_items.iter_mut().enumerate() {
+      info!("ID:{}の本文を取得開始", item.id);
       match fetch_single_body(&item.url, &title_selector, &body_selector).await {
         Ok((title, body)) => {
           if !title.is_empty() {
@@ -173,6 +232,9 @@ impl NewsFetcher for LivedoorNewsFetcher {
       ));
     }
 
+    // ソートを元に戻す(ID順にソート)
+    self.news_items.sort_by_key(|item| item.id);
+
     info!("ニュース本文取得完了");
     Ok(())
   }
@@ -213,7 +275,11 @@ impl NewsFetcher for LivedoorNewsFetcher {
 // 内部ユーティリティ
 // ---------------------------------------------------------------
 // RSS 1つを取得する関数
-async fn fetch_single_rss(rss_item: &RSSItem, limit: usize) -> AppResult<Vec<NewsItem>> {
+async fn fetch_single_rss(
+  rss_item: &RSSItem,
+  limit: usize,
+  id_start: usize,
+) -> AppResult<Vec<NewsItem>> {
   let bytes = http_client::http()
     .get(rss_item.rss_url)
     .send()
@@ -241,7 +307,7 @@ async fn fetch_single_rss(rss_item: &RSSItem, limit: usize) -> AppResult<Vec<New
       let clean_title = html_escape::decode_html_entities(&clean_title).into_owned();
 
       Some(NewsItem {
-        id: rss_item.id_start + i * ID_INCREMENT,
+        id: id_start + i * ID_INCREMENT,
         category: rss_item.category.to_string(),
         title: clean_title,
         url: url.to_string(),
