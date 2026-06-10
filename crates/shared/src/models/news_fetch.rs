@@ -10,8 +10,6 @@ use serde::Serialize;
 // RSSのitem
 #[derive(Debug, Serialize)]
 pub struct RSSItem {
-  // ニュースにidを振るときの初期番号
-  pub id_start: usize,
   // ニュースのカテゴリ
   pub category: &'static str,
   // RSSのURL
