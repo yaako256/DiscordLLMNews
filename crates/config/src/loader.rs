@@ -16,7 +16,7 @@ use config::{Config, Environment, File};
 use shared::errors::{AppError, AppResult};
 
 // 内部ライブラリ(自クレート)
-use super::models::{AppConfig, DiscordConfig, LLMConfig, PromptConfig, RSSConfig};
+use super::models::{AppConfig, DiscordConfig, LLMConfig, PatchConfig, PromptConfig, RSSConfig};
 
 /// プロンプトのパスを入れる構造体
 /// loader内だけで使う中間型。外部には公開しない
@@ -34,7 +34,7 @@ struct RawConfig {
   llm: LLMConfig,
   discord: DiscordConfig,
   prompt_paths: PromptPaths,
-  patch_note_path: String,
+  patch: PatchConfig,
 }
 
 /// configをロードする
@@ -69,7 +69,7 @@ pub fn load_config() -> AppResult<AppConfig> {
     llm: raw.llm,
     discord: raw.discord,
     prompts,
-    patch_note_path: raw.patch_note_path,
+    patch: raw.patch,
   })
 }
 
