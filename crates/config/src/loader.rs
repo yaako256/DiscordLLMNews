@@ -64,15 +64,12 @@ pub fn load_config() -> AppResult<AppConfig> {
   //プロンプト本文を取得
   let prompts = load_prompts(&raw.prompt_paths)?;
 
-  // パッチノート本文を取得
-  let patch_note = read_patch_note(&raw.patch_note_path);
-
   Ok(AppConfig {
     rss: raw.rss,
     llm: raw.llm,
     discord: raw.discord,
     prompts,
-    patch_note,
+    patch_note_path: raw.patch_note_path,
   })
 }
 
@@ -89,9 +86,4 @@ fn load_prompts(paths: &PromptPaths) -> AppResult<PromptConfig> {
 fn read_prompt(path: &str) -> AppResult<String> {
   std::fs::read_to_string(path)
     .map_err(|e| AppError::Config(format!("マークダウンファイル読込失敗: {path}: {e}")))
-}
-
-/// パッチノートをロードする
-fn read_patch_note(path: &str) -> Option<String> {
-  std::fs::read_to_string(path).ok()
 }

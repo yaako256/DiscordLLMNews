@@ -16,8 +16,8 @@ pub struct AppConfig {
   #[serde(skip)]
   pub prompts: PromptConfig, // loaderで後から詰める
 
-  #[serde(skip)]
-  pub patch_note: Option<String>, // loaderで後から詰める
+  // パッチノートのパス
+  pub patch_note_path: String,
 }
 
 /// RSS関連の設定
