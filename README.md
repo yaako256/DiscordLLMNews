@@ -1,5 +1,4 @@
 # DiscordLLMNews
-> 🚧 開発中のプロジェクトです
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://www.docker.com/)
@@ -238,3 +237,4 @@ running → ready → sent
 ---
 ## 余談
 このREADMEはLLMに書かせ、それをちょっと編集しただけです。
+あとちょっとだけこのREADMEに書いてる内容が古いです。
