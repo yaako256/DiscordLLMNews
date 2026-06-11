@@ -8,8 +8,6 @@ use shared::errors::{AppError, AppResult};
 
 // トレイト型用
 use serde::de::DeserializeOwned;
-// ログ用
-//use tracing::info;
 // geminiの内部通信用構造体
 use super::gemini;
 
@@ -35,9 +33,6 @@ pub async fn send_request<T: DeserializeOwned>(
       }],
     }],
   };
-
-  //info!("リクエストボディ");
-  //info!("{:#?}", request_body);
 
   // リクエスト送信
   let response = http_client::llm()
