@@ -25,9 +25,6 @@ use notifier::{DiscordPatchSender, DiscordSender};
 use shared::Notifier;
 use tokio;
 
-// 仮でここで定義
-const POLL_INTERVAL_SECS: u64 = 60000;
-const HANG_THRESHOLD_MINUTES: i64 = 1000000;
 pub struct Kernel {
   config: Arc<AppConfig>,
   started_at: DateTime<FixedOffset>,
@@ -368,9 +365,12 @@ impl Kernel {
         NewsSummary::Running { started_at } => {
           let elapsed_minutes = (utils::now_jst() - *started_at).num_minutes();
 
-          if elapsed_minutes >= HANG_THRESHOLD_MINUTES {
+          if elapsed_minutes >= self.config.system.hang_threshold_minutes {
             // hang扱い: ログを送信してエラーを返す
-            warn!("news_summary が {HANG_THRESHOLD_MINUTES}分以上 running のまま。hang と判定");
+            warn!(
+              "news_summary が {}分以上 running のまま。hang と判定",
+              self.config.system.hang_threshold_minutes
+            );
             logger::error(
               "send",
               format!("feed hang 検知: {elapsed_minutes}分間 running のまま"),
@@ -387,9 +387,12 @@ impl Kernel {
           // hang判定未満: 30秒待ってリロード
           info!(
             "news_summary: running ({elapsed_minutes}分経過)、{}秒後に再確認",
-            POLL_INTERVAL_SECS
+            self.config.system.poll_interval_secs
           );
-          tokio::time::sleep(tokio::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
+          tokio::time::sleep(tokio::time::Duration::from_secs(
+            self.config.system.poll_interval_secs,
+          ))
+          .await;
           sender.reload().await?;
         }
 
