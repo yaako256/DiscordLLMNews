@@ -102,8 +102,3 @@ patch_note_path = ".config/patch_note.md"
 news_webhooks = ["Webhook1","Webhook2"]
 # ログ通知用webhook
 logs_webhooks = ["Webhook1","Webhook2"]
-
-
-
-
-

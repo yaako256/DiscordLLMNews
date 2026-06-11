@@ -1,21 +1,22 @@
 # .config/prod/app.toml
 # 本番用のconfigファイル
 # ここに定数設定などを書いていく
+# 開発用に比べRSSや本文の取得間隔など、待機時間などを伸ばしている
 
 # =========================
 # RSS関連の設定
 # =========================
 [rss]
 # RSSを取得する個数
-feed_fetch_limit = 5
+feed_fetch_limit = 4
 
 # サーバ負荷対策等
 # RSS取得のクールタイム
-rss_fetch_interval_ms = 10000
+rss_fetch_interval_ms = 60000
 # 本文取得のクールタイム
-body_fetch_interval_ms = 31000
+body_fetch_interval_ms = 60000
 # HTTPのタイムアウト秒数
-timeout_s = 180
+timeout_s = 45
 
 # =========================
 # LLM関連の設定
@@ -40,7 +41,7 @@ title_select_limit = 2
 body_select_limit = 1
 
 # HTTPのタイムアウト秒数
-timeout_s = 30
+timeout_s = 240
 
 # 最大リトライ数(1リクエスト)
 max_retry = 5
@@ -52,13 +53,13 @@ request_interval_ms = 31000
 
 # 指数バックオフ関連
 # 初期値[ms]
-backoff_initial_delay = 20000
+backoff_initial_delay = 30000
 # 累乗対象[ms]
 backoff_base = 10000
 # 累乗の量
-backoff_exponent_factor = 1.3
+backoff_exponent_factor = 1.4
 # 最大待機時間[ms]
-backoff_max_time = 1200000
+backoff_max_time = 600000
 
 
 # =========================
@@ -71,6 +72,25 @@ select_title = ".config/prompts/select_title.md"
 select_body = ".config/prompts/select_title.md"
 # 本文要約・整形するときのプロンプト
 summarize = ".config/prompts/summarize.md"
+
+
+# =========================
+# システム関連の設定
+# =========================
+# このシステム全体関連の定義
+# feed結果取得失敗時、何秒おきにfeed結果を確認するか
+poll_interval_secs = 30
+# 何分でfeedがhangした判定とみなすか
+hang_threshold_minutes = 30
+
+# =========================
+# パッチ通知関連
+# =========================
+[patch]
+# バージョン番号
+version = "1.0.0"
+# パッチノートが書かれたパス
+patch_note_path = ".config/patch_note.md"
 
 
 # =========================
