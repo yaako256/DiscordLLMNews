@@ -649,7 +649,8 @@ impl Kernel {
         version,
         message_body,
       } => (*prepared_at, version, message_body),
-      _ => unreachable!("上のmatchで確認済み"),
+      PatchSummary::Failed { .. } => unreachable!("ready 確認後にFailedを発見"),
+      PatchSummary::Sent { .. } => unreachable!("ready 確認後にSentを発見"),
     };
     infra::write_patch_summary(&shared::PatchSummary::Sent {
       sent_at,
