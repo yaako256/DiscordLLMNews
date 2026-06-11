@@ -74,7 +74,9 @@ pub async fn send_request<T: DeserializeOwned>(
   // ステータスコード確認
   let status = response.status();
   if !status.is_success() {
-    let text = response.text().await.unwrap_or_default();
+    let text = response.text().await.map_err(|e| {
+      AppError::LLMRequest(format!("APIエラー & レスポンス本文読み込み失敗: {}", e))
+    })?;
     return Err(AppError::LLMRequest(format!(
       "APIエラー: status:{status} body:{text}"
     )));
