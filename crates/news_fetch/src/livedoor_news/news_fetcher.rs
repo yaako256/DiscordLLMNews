@@ -178,7 +178,7 @@ impl NewsFetcher for LivedoorNewsFetcher {
     // 取得順をいい感じにするようなソート
     // カテゴリをバラけさせる
     self.spread_by_id_category(CATEGORY_UNIT);
-    info!("{:#?}", self.news_items);
+
     // それぞれ実行する
     for (i, item) in self.news_items.iter_mut().enumerate() {
       info!("ID:{}の本文を取得開始", item.id);
