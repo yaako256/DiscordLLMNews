@@ -22,19 +22,28 @@ pub fn init() {
 
 pub fn info(stage: impl Into<String>, msg: impl Into<String>) {
   if let Some(logger) = LOGGER.get() {
-    logger.lock().unwrap().info(stage, msg);
+    logger
+      .lock()
+      .expect("logger mutex poisoned")
+      .info(stage, msg);
   }
 }
 
 pub fn warn(stage: impl Into<String>, msg: impl Into<String>) {
   if let Some(logger) = LOGGER.get() {
-    logger.lock().unwrap().warn(stage, msg);
+    logger
+      .lock()
+      .expect("logger mutex poisoned")
+      .warn(stage, msg);
   }
 }
 
 pub fn error(stage: impl Into<String>, msg: impl Into<String>) {
   if let Some(logger) = LOGGER.get() {
-    logger.lock().unwrap().error(stage, msg);
+    logger
+      .lock()
+      .expect("logger mutex poisoned")
+      .error(stage, msg);
   }
 }
 

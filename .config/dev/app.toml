@@ -75,6 +75,25 @@ summarize = ".config/prompts/summarize.md"
 
 
 # =========================
+# システム関連の設定
+# =========================
+# このシステム全体関連の定義
+# feed結果取得失敗時、何秒おきにfeed結果を確認するか
+poll_interval_secs = 30
+# 何分でfeedがhangした判定とみなすか
+hang_threshold_minutes = 30
+
+# =========================
+# パッチ通知関連
+# =========================
+[patch]
+# バージョン番号
+version = "1.0.0"
+# パッチノートが書かれたパス
+patch_note_path = ".config/patch_note.md"
+
+
+# =========================
 # Discord関連の設定
 # =========================
 [discord]
@@ -86,12 +105,5 @@ logs_webhooks = ["Webhook1","Webhook2"]
 
 
 
-# =========================
-# パッチ通知関連
-# =========================
-[patch]
-# バージョン番号
-version = "1.0.0"
-# パッチノートが書かれたパス
-patch_note_path = ".config/patch_note.md"
+
 

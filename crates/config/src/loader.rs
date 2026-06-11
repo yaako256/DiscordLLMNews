@@ -16,7 +16,9 @@ use config::{Config, Environment, File};
 use shared::errors::{AppError, AppResult};
 
 // 内部ライブラリ(自クレート)
-use super::models::{AppConfig, DiscordConfig, LLMConfig, PatchConfig, PromptConfig, RSSConfig};
+use super::models::{
+  AppConfig, DiscordConfig, LLMConfig, PatchConfig, PromptConfig, RSSConfig, SystemConfig,
+};
 
 /// プロンプトのパスを入れる構造体
 /// loader内だけで使う中間型。外部には公開しない
@@ -30,6 +32,7 @@ struct PromptPaths {
 // loaderの内部型。AppConfigとprompt_pathsを同時に取り出す
 #[derive(Deserialize)]
 struct RawConfig {
+  system: SystemConfig,
   rss: RSSConfig,
   llm: LLMConfig,
   discord: DiscordConfig,
@@ -65,6 +68,7 @@ pub fn load_config() -> AppResult<AppConfig> {
   let prompts = load_prompts(&raw.prompt_paths)?;
 
   Ok(AppConfig {
+    system: raw.system,
     rss: raw.rss,
     llm: raw.llm,
     discord: raw.discord,

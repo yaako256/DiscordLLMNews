@@ -9,6 +9,7 @@ use serde::Deserialize;
 /// 設定まとめ
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
+  pub system: SystemConfig,
   pub rss: RSSConfig,
   pub llm: LLMConfig,
   pub discord: DiscordConfig,
@@ -17,6 +18,17 @@ pub struct AppConfig {
   pub prompts: PromptConfig, // loaderで後から詰める
 
   pub patch: PatchConfig,
+}
+
+/// このシステムの全体的なconfig
+/// 後で変数名は編集すべきかも
+#[derive(Debug, Deserialize)]
+pub struct SystemConfig {
+  // 何秒ごとにfeed結果を確認するか
+  pub poll_interval_secs: u64,
+
+  // feedがhangしたとみなす時間
+  pub hang_threshold_minutes: i64,
 }
 
 /// RSS関連の設定
