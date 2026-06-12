@@ -89,7 +89,7 @@ hang_threshold_minutes = 30
 # =========================
 [patch]
 # バージョン番号
-version = "3.0.0"
+version = "3.0.1"
 # パッチノートが書かれたパス
 patch_note_path = ".config/patch_note.md"
 

@@ -8,7 +8,7 @@
 # =========================
 [rss]
 # RSSを取得する個数
-feed_fetch_limit = 4
+feed_fetch_limit = 10
 
 # サーバ負荷対策等
 # RSS取得のクールタイム
@@ -35,7 +35,7 @@ fallback_models = [
   ]
 
 # タイトルから選出する個数
-title_select_limit = 2
+title_select_limit = 3
 
 # 本文から選出する個数
 body_select_limit = 1
@@ -49,15 +49,22 @@ max_retry = 5
 # LLMのクールタイム関連を定義
 [llm.sleep]
 # LLMリクエストの標準クールタイム[ms]
-request_interval_ms = 31000
+request_interval_ms = 61000
 
 # 指数バックオフ関連
+# 現在の待ち時間計算
+# -------------------------------------------
+# 1回目ミス： 65秒 + (15秒 × 1.5^1) ＝ 87.5秒
+# 2回目ミス： 65秒 + (15秒 × 1.5^2) ＝ 98.7秒
+# 3回目ミス： 65秒 + (15秒 × 1.5^3) ＝ 115.6秒
+# 4回目ミス： 65秒 + (15秒 × 1.5^4) ＝ 140.9秒
+# -------------------------------------------
 # 初期値[ms]
-backoff_initial_delay = 30000
+backoff_initial_delay = 65000
 # 累乗対象[ms]
-backoff_base = 10000
+backoff_base = 15000
 # 累乗の量
-backoff_exponent_factor = 1.4
+backoff_exponent_factor = 1.5
 # 最大待機時間[ms]
 backoff_max_time = 600000
 
@@ -82,14 +89,14 @@ summarize = ".config/prompts/summarize.md"
 # feed結果取得失敗時、何秒おきにfeed結果を確認するか
 poll_interval_secs = 30
 # 何分でfeedがhangした判定とみなすか
-hang_threshold_minutes = 30
+hang_threshold_minutes = 50
 
 # =========================
 # パッチ通知関連
 # =========================
 [patch]
 # バージョン番号
-version = "3.0.0"
+version = "3.0.1"
 # パッチノートが書かれたパス
 patch_note_path = ".config/patch_note.md"
 
