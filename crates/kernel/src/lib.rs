@@ -641,6 +641,12 @@ impl Kernel {
       return Err(e);
     }
 
+    // パッチ通知したことをログ通知
+    if let Err(e) = sender.send_logs().await {
+      error!("パッチ本文送信失敗: {e}");
+      return Err(e);
+    }
+
     // patch_summary を sent に更新
     let sent_at = utils::now_jst();
     let (prepared_at, version, message_body) = match sender.get_send_item() {
