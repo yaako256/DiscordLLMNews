@@ -127,3 +127,5 @@ start_idを自分で指定するのをやめて、CATEGORY_UNITでid設定をす
 - .gitattributesを使った、gitのダウンロード時に作られるzipへの制限(日記は含めないなど)を行う
 - crontabもvolume化する？(現在はcopyをしているため、再deployしないと反映されない)
 - パッチノートは`.config/prod/patch_note/v3.0.1.md`みたいに階層を下げてもいいかもしれない。てかそれがいいかも
+- cargo.tomlに実際には使わないworkspaceクレートが定義されていたりする問題の修正
+- Dockerfileを1つにして、マルチステージビルドなどをして、本運用との差分をなくしてより管理が容易にするようにする？
