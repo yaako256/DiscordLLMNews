@@ -1,0 +1,43 @@
+# compose.prod.yaml
+# 本番用コンテナの指定
+# このコンテナを常駐させ、cronに定期実行させる。
+
+# 名前指定
+name: discord_llm_news-prod
+
+# サービス指定
+services:
+  app:
+    # コンテナ名の指定
+    container_name: discord_llm_news
+
+    # コンテナのbuild設定の指定
+    build:
+      context: .
+      target: prod
+
+    # 常駐設定
+    restart: unless-stopped
+
+    # volume指定
+    volumes:
+      # 設定ファイルがあるフォルダ
+      - ./.config/prod:/app/.config
+      # 記録ファイルがあるフォルダ
+      - ./data/prod:/app/data
+
+    # ログローテーションの設定(ディスク満杯防止)
+    # Dockerのログだけが対象(自前jsonlなどは対象外)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m" # 1つのログファイルは最大10MB
+        max-file: "3" # 過去ログは最大3ファイルまで保持(計30MB)
+
+    # リソース制限の設定(Compose V3仕様)
+    deploy:
+      resources:
+        limits:
+          # Rust+HTTPくらいならこれでいい
+          cpus: '0.5' # CPUの最大コア数を制限
+          memory: 128M # メモリの最大値を制限

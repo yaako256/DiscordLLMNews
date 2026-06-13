@@ -108,6 +108,11 @@ start_idを自分で指定するのをやめて、CATEGORY_UNITでid設定をす
 - ついでにパッチ通知をしたログがログwebhookに送信されていなかった問題の修正
 - その内容をv3.0.1としてパッチ通知しつつ、再deployした。
 
+# 2026年06月13日
+- Docker周りの整備
+Dockerfileをmulti stage buildにし、Dockerfileを共通の1ファイルに。
+composeファイルをdevとprodに分割
+cargo watchがコンテナ起動時にしか行っていなかった問題の修正
 
 
 # 改善点・やること
