@@ -62,15 +62,10 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 name = "app"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "config 0.1.0",
  "http_client",
- "infra",
  "kernel",
- "llm",
  "logger",
- "news_fetch",
- "notifier",
  "shared",
  "tokio",
  "tracing-subscriber",
@@ -1135,7 +1130,6 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 name = "llm"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "config 0.1.0",
  "http_client",
  "infra",
@@ -1289,7 +1283,6 @@ dependencies = [
  "config 0.1.0",
  "html-escape",
  "http_client",
- "infra",
  "logger",
  "rand",
  "regex",
@@ -1319,10 +1312,8 @@ dependencies = [
  "http_client",
  "infra",
  "logger",
- "serde",
  "serde_json",
  "shared",
- "tokio",
  "tracing",
 ]
 
@@ -2049,9 +2040,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "serde",
- "serde_json",
  "thiserror",
- "tokio",
 ]
 
 [[package]]

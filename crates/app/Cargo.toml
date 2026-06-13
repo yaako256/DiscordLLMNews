@@ -8,13 +8,8 @@ edition = "2024"
 kernel = { path = "../kernel" }
 shared = { path = "../shared" }
 config= { path = "../config" }
-notifier= { path = "../notifier" }
-infra= { path = "../infra" }
 logger= { path = "../logger" }
-news_fetch= { path = "../news_fetch" }
-llm = { path = "../llm" }
 http_client = { path = "../http_client" }
 
 tracing-subscriber = { workspace = true }
-chrono = { workspace = true }
 tokio = { workspace = true }

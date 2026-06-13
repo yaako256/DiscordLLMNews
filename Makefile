@@ -115,11 +115,15 @@ create-at:
 # ==================================
 ### Rust品質管理(Rust Quality Control)
 # ==================================
-.PHONY: test
+.PHONY: test toml
 
 ## ユニットテストの実行
 test:
 	cargo test
+
+## クレートの依存関係のチェック
+toml:
+	cargo machete
 
 # ==================================
 ### その他 (Utilities)

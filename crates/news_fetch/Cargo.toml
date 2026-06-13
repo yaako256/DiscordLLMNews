@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 shared = { path = "../shared" }
 config = { path = "../config" }
-infra= { path = "../infra" }
 logger = { path = "../logger" }
 http_client = { path = "../http_client" }
 
