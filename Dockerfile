@@ -72,8 +72,8 @@ RUN ARCH=$(uname -m) && \
 COPY --from=builder /app/target/release/app /app/discord_llm_new
 
 # 周辺ディレクトリのコピー
-COPY .docker/prod/crontab /app/crontab
-COPY .docker/prod/entrypoint.sh /entrypoint.sh
+COPY .docker/crontab /app/crontab
+COPY .docker/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 

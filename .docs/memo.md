@@ -108,11 +108,20 @@ start_idを自分で指定するのをやめて、CATEGORY_UNITでid設定をす
 - ついでにパッチ通知をしたログがログwebhookに送信されていなかった問題の修正
 - その内容をv3.0.1としてパッチ通知しつつ、再deployした。
 
+**パッチv3.0.1通知**
+
 # 2026年06月13日
-- Docker周りの整備
-Dockerfileをmulti stage buildにし、Dockerfileを共通の1ファイルに。
-composeファイルをdevとprodに分割
-cargo watchがコンテナ起動時にしか行っていなかった問題の修正
+- Docker周りの整備  
+DockerfileをMultiStageBuildにし、Dockerfileを共通の1ファイルに。  
+composeファイルをdevとprodに分割  
+cargo watchがコンテナ起動時にしか行っていなかった問題の修正  
+これにより以下の利点が生まれた(LLM情報)  
+  * Rustバージョン変更が1箇所
+  * dev/prod差異が減る
+  * 新たに導入(cargo-chefなど)をする時、1つのDockerfileでの1回修正で済む
+  * Composeの責務が明確
+  * Compose Overrideが使える
+  * CI/CD導入が簡単
 
 
 # 改善点・やること
@@ -121,6 +130,7 @@ cargo watchがコンテナ起動時にしか行っていなかった問題の修
 - ☑プレースホルダーが直値。修正する。
 - ☑ファイルが存在しない時のsendエラーでprocess_historyが記入されない問題の修正
 - ☑パッチ通知したことをlogに示す機能がkernelに反映されてなく、使われてない問題の修正
+- ☑Dockerfileを1つにして、マルチステージビルドなどをして、本運用との差分をなくしてより管理が容易にするようにする？
 
 - ニュースURLも張り、ジャンプできるようにする
 - トリビア履歴などを初期化(prune)するCLIコマンドの追加 → 正味1日1回だしいらない
@@ -133,4 +143,4 @@ cargo watchがコンテナ起動時にしか行っていなかった問題の修
 - crontabもvolume化する？(現在はcopyをしているため、再deployしないと反映されない)
 - パッチノートは`.config/prod/patch_note/v3.0.1.md`みたいに階層を下げてもいいかもしれない。てかそれがいいかも
 - cargo.tomlに実際には使わないworkspaceクレートが定義されていたりする問題の修正
-- Dockerfileを1つにして、マルチステージビルドなどをして、本運用との差分をなくしてより管理が容易にするようにする？
+- 通常のcomposeを作り、Compose Overrideで指定する方法を採用する
