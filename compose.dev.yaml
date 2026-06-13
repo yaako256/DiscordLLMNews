@@ -1,0 +1,56 @@
+# compose.dev.yaml
+# 開発用コンテナの指定
+# Rustの開発ができる
+
+# 名前指定
+name: discord_llm_news-dev
+
+# サービス指定
+services:
+  app:
+    # コンテナ名の指定
+    container_name: discord_llm_news_dev
+
+    # コンテナのbuild設定の指定
+    build:
+      context: .
+      target: dev
+
+    # 作業用ディレクトリの指定
+    working_dir: /app
+
+    # cargo watchの常時起動設定
+    # ターミナル割り当て
+    tty: true
+    # cargo watchのコマンド
+    command:
+      - cargo
+      - watch
+      - -x
+      - check
+
+    # volume指定
+    volumes:
+      # 開発プロジェクト全体
+      - .:/app
+      # キャッシュ関連は膨大なため共通化
+      - cargo_cache:/usr/local/cargo/registry
+      # 成果物も膨大なため共通化
+      - target_cache:/app/target
+      # 設定ファイルがあるフォルダ
+      - ./.config/dev:/app/.config
+      # 記録ファイルがあるフォルダ
+      - ./data/dev:/app/data
+
+    # ログローテーションの設定(ディスク満杯防止)
+    # Dockerのログだけが対象(自前jsonlなどは対象外)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m" # 1つのログファイルは最大10MB
+        max-file: "3" # 過去ログは最大3ファイルまで保持(計30MB)
+
+# 名前付きVolumeで永続化
+volumes:
+  cargo_cache:
+  target_cache:

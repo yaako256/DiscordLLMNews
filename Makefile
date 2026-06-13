@@ -9,17 +9,18 @@
 # 実行時の引数（未指定時はhelp）
 CMD ?= help
 
-# サービス名（compose.yamlと一致させる）
-DEV_SERVICE  := discord_llm_news_dev
-PROD_SERVICE := discord_llm_news
-
+# compose名
+DEV_COMPOSE := compose.dev.yaml
+PROD_COMPOSE := compose.prod.yaml
+SERVICE_NAME := app
 
 # ==================================
 ### 実行関連(Execution)
 # ==================================
 .PHONY: run run-prod
 
-## 開発用の引数付き実行(開発コンテナ内) (例: make run CMD=monitor)
+## 開発用の引数付き実行(例: make run CMD=monitor)
+# コンテナ内で行う
 run: 
 	cargo run -p app -- $(CMD)
 #	cargo run -p app
@@ -28,79 +29,88 @@ run:
 run-prod:
 	/app/discord_llm_news $(CMD)
 
-
 # ==================================
 ### Docker関連(Docker Management)
 # ==================================
-.PHONY: dev stop-dev prod stop-prod down deploy build
+.PHONY: dev stop-dev prod stop-prod down deploy deploy-release build-dev build-prod
 
 ## 開発用コンテナを起動
-dev: 
-	docker compose up $(DEV_SERVICE)
+dev:
+	docker compose -f $(DEV_COMPOSE) up
 
 ## 開発用コンテナを停止
 stop-dev: 
-	docker compose stop $(DEV_SERVICE)
+	docker compose -f $(DEV_COMPOSE) stop $(SERVICE_NAME)
 
 ## 本番用コンテナをバックグラウンド起動
 prod:
-	docker compose up -d $(PROD_SERVICE)
+	docker compose -f $(PROD_COMPOSE) up -d
 
 ## 本番用コンテナを停止
 stop-prod:
-	docker compose stop $(PROD_SERVICE)
+	docker compose -f $(PROD_COMPOSE) stop $(SERVICE_NAME)
 
 # コンテナ・ネットワークを停止・削除(共通)
 #down:
 #	docker compose down
 
+## 本番デプロイ
+deploy:
+	docker compose -f $(PROD_COMPOSE) up -d --build --force-recreate
+
 ## 完全本番デプロイ
 # - dev停止
 # - release build
 # - container再作成
-deploy:
-	docker compose stop $(DEV_SERVICE)
-	docker compose rm -f $(DEV_SERVICE)
-	docker compose up -d --build --force-recreate $(PROD_SERVICE)
+deploy-release:
+	docker compose -f $(DEV_COMPOSE) stop $(SERVICE_NAME)
+	docker compose -f $(DEV_COMPOSE) rm -f $(SERVICE_NAME)
+	docker compose -f $(PROD_COMPOSE) up -d --build --force-recreate
 
-## Dockerイメージのビルドチェック(共通)
-build: 
-	docker compose build
+## 開発用Dockerイメージのビルドチェック
+build-dev:
+	docker compose -f $(DEV_COMPOSE) build
 
+## 本番用Dockerイメージのビルドチェック
+build-prod:
+	docker compose -f $(PROD_COMPOSE) build
 
 .PHONY: logs devlogs shell prodshell ps stats stats-once reset
 ## 本番用コンテナのログをリアルタイム表示
 logs: 
-	docker compose logs -f $(PROD_SERVICE)
+	docker compose -f $(PROD_COMPOSE) logs -f $(SERVICE_NAME)
 
 ## 開発用コンテナのログをリアルタイム表示
 devlogs:
-	docker compose logs -f $(DEV_SERVICE)
+	docker compose -f $(DEV_COMPOSE) logs -f $(SERVICE_NAME)
 
 ## 開発用コンテナのシェル（bash）に入る
 shell:
-	docker compose exec -it $(DEV_SERVICE) bash
+	docker compose -f $(DEV_COMPOSE) exec $(SERVICE_NAME) bash
 
 ## 本番用コンテナのシェル（sh）に入る
 prodshell:
-	docker compose exec -it $(PROD_SERVICE) sh
+	docker compose -f $(PROD_COMPOSE) exec $(SERVICE_NAME) sh
 
 ## コンテナの起動状態を確認
 ps:
-	docker compose ps
+	docker compose -f $(DEV_COMPOSE) ps
+	docker compose -f $(PROD_COMPOSE) ps
 
 ## 起動中のコンテナのメモリ・CPU使用率をリアルタイム表示
 stats:
-	docker compose stats
+	docker stats
 
 ## 【危険】完全リセット（コンテナ、イメージ、ボリューム、ネットワークを全削除）
 reset:
-	docker compose down --rmi all --volumes --remove-orphans
+	docker compose -f $(DEV_COMPOSE) down --rmi all --volumes --remove-orphans
+	docker compose -f $(PROD_COMPOSE) down --rmi all --volumes --remove-orphans
 
 .PHONY: create-at
 ## 詳細な起動時間を表示
 create-at:
-	docker compose ps --format "table {{.Name}}\t{{.CreatedAt}}"
+	docker compose -f $(DEV_COMPOSE) ps --format "table {{.Name}}\t{{.CreatedAt}}"
+	docker compose -f $(PROD_COMPOSE) ps --format "table {{.Name}}\t{{.CreatedAt}}"
 
 # ==================================
 ### Rust品質管理(Rust Quality Control)
@@ -110,7 +120,6 @@ create-at:
 ## ユニットテストの実行
 test:
 	cargo test
-
 
 # ==================================
 ### その他 (Utilities)
